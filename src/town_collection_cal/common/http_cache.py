@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import requests
 
+logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class CacheResult:
@@ -59,7 +61,22 @@ def fetch_with_cache(
         if last_modified := meta.get("last_modified"):
             headers["If-Modified-Since"] = last_modified
 
-    response = requests.get(url_str, headers=headers, timeout=timeout)
+    try:
+        response = requests.get(url_str, headers=headers, timeout=timeout)
+    except requests.RequestException as exc:
+        if content_path.exists():
+            sha = meta.get("sha256") or _sha256_file(content_path)
+            logger.warning("Fetch failed for %s, using cached file: %s", url_str, exc)
+            return CacheResult(
+                path=content_path,
+                sha256=sha,
+                updated=False,
+                status_code=0,
+                url=url_str,
+                etag=meta.get("etag"),
+                last_modified=meta.get("last_modified"),
+            )
+        raise
 
     if response.status_code == 304 and content_path.exists():
         sha = meta.get("sha256") or _sha256_file(content_path)

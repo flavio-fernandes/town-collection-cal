@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 
@@ -13,6 +14,8 @@ DAY_PATTERN = re.compile(r"\b(Monday|Tuesday|Wednesday|Thursday|Friday)\b", re.I
 COLOR_PATTERN = re.compile(r"\b(BLUE|GREEN|TBA)\b", re.IGNORECASE)
 PARITY_PATTERN = re.compile(r"\b(ODD|EVEN)\b", re.IGNORECASE)
 RANGE_PATTERN = re.compile(r"\b(\d{1,5})\s*-\s*(\d{1,5})\b")
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_text(path: Path) -> str:
@@ -73,16 +76,25 @@ def parse_routes(path: str | Path, url: str) -> RoutesParseResult:
                 )
             )
 
-        routes.append(
-            RouteEntry(
-                street=street,
-                street_normalized=normalize_street_name(street),
-                weekday=day,
-                recycling_color=color,
-                no_collection=no_collection,
-                constraints=constraints,
-                notes=None,
-            )
+        route = RouteEntry(
+            street=street,
+            street_normalized=normalize_street_name(street),
+            weekday=day,
+            recycling_color=color,
+            no_collection=no_collection,
+            constraints=constraints,
+            notes=None,
+        )
+        routes.append(route)
+        logger.debug(
+            "Parsed route line=%r street=%s weekday=%s color=%s parity=%s range=%s-%s",
+            raw_line,
+            route.street,
+            route.weekday,
+            route.recycling_color,
+            parity,
+            range_min,
+            range_max,
         )
 
     if not routes:

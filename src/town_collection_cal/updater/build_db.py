@@ -216,9 +216,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cache-dir", default="data/cache", help="Cache directory")
     parser.add_argument("--force-refresh", action="store_true", help="Force re-download sources")
     parser.add_argument("--validate-only", action="store_true", help="Validate only, no output")
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Logging level",
+    )
     args = parser.parse_args(argv)
 
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    logging.basicConfig(level=args.log_level, format="%(levelname)s %(message)s")
 
     build_db(
         Path(args.town),

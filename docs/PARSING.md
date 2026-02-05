@@ -11,6 +11,7 @@ This document explains how the updater fetches and parses town PDFs, and how to 
    - `town_collection_cal.common.http_cache.fetch_with_cache` downloads the PDFs to `data/cache/`.
    - It stores ETag/Last-Modified metadata in `<filename>.meta.json`.
    - Use `--force-refresh` to bypass cache.
+   - If the network fetch fails but a cached file exists, the updater will reuse the cached file.
 
 3. **Parse PDFs**
    - The updater invokes two parsers:
@@ -39,6 +40,15 @@ python -m town_collection_cal.updater build-db \
   --town towns/westford_ma/town.yaml \
   --out data/generated/westford_ma.json \
   --cache-dir data/cache
+```
+
+Enable parser debug logging (shows matched lines and anchor info):
+```bash
+python -m town_collection_cal.updater build-db \
+  --town towns/westford_ma/town.yaml \
+  --out data/generated/westford_ma.json \
+  --cache-dir data/cache \
+  --log-level DEBUG
 ```
 
 Force refresh (ignore cached PDFs):

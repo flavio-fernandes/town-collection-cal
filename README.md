@@ -18,6 +18,10 @@ Optional address parsing (recommended):
 pip install -e ".[dev,address]"
 ```
 
+Notes:
+- On Python 3.14, the `usaddress` extra is skipped because `python-crfsuite` does not provide wheels and often fails to build.
+- If you need `usaddress` parsing on macOS, install Xcode CLI tools: `xcode-select --install`, then use Python 3.13 or install `usaddress` manually.
+
 Build the DB:
 ```bash
 python -m town_collection_cal.updater build-db \

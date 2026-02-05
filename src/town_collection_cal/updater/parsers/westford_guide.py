@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from datetime import date, datetime
 from pathlib import Path
@@ -14,6 +15,8 @@ ANCHOR_PATTERN = re.compile(
     re.IGNORECASE,
 )
 YEAR_PATTERN = re.compile(r"\b(20\d{2})\b")
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_text(path: Path) -> str:
@@ -60,6 +63,14 @@ def parse_schedule(path: str | Path, url: str) -> ScheduleParseResult:
     year = _infer_year(text)
     anchor_date = date.fromisoformat(f"{year}-{_month_number(month_name):02d}-{day_start:02d}")
     anchor_sunday = _anchor_sunday(anchor_date)
+    logger.debug(
+        "Parsed anchor week from %s: month=%s day=%s color=%s anchor_sunday=%s",
+        url,
+        month_name,
+        day_start,
+        color,
+        anchor_sunday.isoformat(),
+    )
 
     calendar_policy = CalendarPolicy(
         recycling_mode="alternating_week",

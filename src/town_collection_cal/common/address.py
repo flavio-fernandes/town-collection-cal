@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -7,6 +8,9 @@ try:
     import usaddress  # type: ignore
 except Exception:  # pragma: no cover - fallback when dependency missing
     usaddress = None
+
+logger = logging.getLogger(__name__)
+_warned_fallback = False
 
 
 @dataclass(frozen=True)
@@ -36,7 +40,12 @@ def parse_address(raw: str) -> ParsedAddress:
         return ParsedAddress(house_number, street, raw, parsed)
 
     # Fallback: naive split (best effort without usaddress)
-    parts = raw.split()
+    global _warned_fallback
+    if not _warned_fallback:
+        logger.warning("usaddress not installed; using naive address parsing")
+        _warned_fallback = True
+    primary = raw.split(",")[0]
+    parts = primary.split()
     if not parts:
         return ParsedAddress(None, None, raw, {})
     house_number = parts[0] if parts[0].isdigit() else None
