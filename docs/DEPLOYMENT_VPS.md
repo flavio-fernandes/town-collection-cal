@@ -287,12 +287,19 @@ ExecStart=/usr/bin/docker run --rm \
   -e CACHE_DIR=/app/data/cache \
   -v /opt/town-collection-cal/towns:/app/towns \
   -v /opt/town-collection-cal/data:/app/data \
+  --user 10001:10001 \
   ghcr.io/flavio-fernandes/town-collection-cal:latest \
   python -m town_collection_cal.updater build-db \
     --town /app/towns/westford_ma/town.yaml \
     --out /app/data/generated/westford_ma.json \
     --cache-dir /app/data/cache
 EOF
+```
+
+Ensure the data directory is owned by the same UID the container runs as (from the Dockerfile, `10001`):
+
+```bash
+sudo chown -R 10001:10001 /opt/town-collection-cal/data
 ```
 
 Create a daily timer:
