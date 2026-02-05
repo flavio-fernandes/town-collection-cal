@@ -231,6 +231,8 @@ limit_conn_zone $binary_remote_addr zone=addr:10m;
 EOF
 ```
 
+You can also copy these settings from `docs/nginx_http_context.conf`.
+
 After Certbot has created the HTTPS server block, add these lines inside the `server { ... }` block that listens on `443` in `/etc/nginx/sites-available/trash.flaviof.com`:
 
 ```nginx
@@ -241,6 +243,8 @@ add_header X-Frame-Options DENY always;
 add_header Referrer-Policy no-referrer always;
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 ```
+
+You can copy these server-block directives from `docs/nginx_server_security.conf`.
 
 Then reload Nginx:
 
