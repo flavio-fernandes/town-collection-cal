@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "Town Collection Cal",
+    "_postman_id": "2f6c42d2-0e64-4e27-9a7a-7c6d3a7a9f11",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/healthz"
+      }
+    },
+    {
+      "name": "Version",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/version"
+      }
+    },
+    {
+      "name": "Streets (count)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/streets"
+      }
+    },
+    {
+      "name": "Streets (full list)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/streets?full=true"
+      }
+    },
+    {
+      "name": "Debug (address)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/debug?address=65%20Boston%20Road,%20Westford,%20MA%2001886"
+      }
+    },
+    {
+      "name": "ICS (address)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/town.ics?address=65%20Boston%20Road,%20Westford,%20MA%2001886"
+      }
+    },
+    {
+      "name": "ICS (street + number)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/town.ics?street=Boston%20Road&number=65"
+      }
+    },
+    {
+      "name": "ICS (bypass mode)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/town.ics?weekday=Thursday&color=BLUE&days=120"
+      }
+    }
+  ]
+}

@@ -126,6 +126,12 @@ ruff check .
 pytest
 ```
 
+## Postman
+Import `postman/town-collection-cal.postman_collection.json`.
+
+## Parsing and Troubleshooting
+See `docs/PARSING.md`.
+
 ## Home Assistant
 Add the ICS URL as a calendar source:
 ```
