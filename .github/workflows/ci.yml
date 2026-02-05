@@ -21,3 +21,41 @@ jobs:
         run: ruff check .
       - name: Test
         run: pytest
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build prod image
+        run: docker build -t town-collection-cal:ci .
+      - name: Run with hardened flags
+        run: |
+          docker run -d --name town-collection-cal-ci \
+            -p 8080:5000 \
+            -e TOWN_ID=westford_ma \
+            -e TOWN_CONFIG_PATH=/app/towns/westford_ma/town.yaml \
+            -e DB_PATH=/app/data/generated/westford_ma.json \
+            -v "$PWD/towns:/app/towns:ro" \
+            -v "$PWD/data:/app/data" \
+            --read-only \
+            --tmpfs /tmp \
+            --tmpfs /var/tmp \
+            --cap-drop=ALL \
+            --security-opt no-new-privileges:true \
+            --pids-limit 200 \
+            --memory 512m \
+            --cpus 1 \
+            --log-opt max-size=10m \
+            --log-opt max-file=5 \
+            town-collection-cal:ci
+
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:8080/healthz >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl -fsS http://127.0.0.1:8080/healthz
+          curl -fsS "http://127.0.0.1:8080/town.ics?weekday=Thursday&color=BLUE" -o /tmp/town.ics
+          docker rm -f town-collection-cal-ci

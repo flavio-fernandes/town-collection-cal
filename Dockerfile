@@ -26,6 +26,12 @@ COPY --from=builder /usr/local /usr/local
 COPY src /app/src
 COPY towns /app/towns
 
+RUN useradd --system --uid 10001 --user-group \
+      --home-dir /home/app --create-home --shell /usr/sbin/nologin app \
+    && chown -R app:app /app
+
+USER app
+
 EXPOSE 5000
 
 CMD ["gunicorn", "-b", "0.0.0.0:5000", "town_collection_cal.service.app:create_app()"]

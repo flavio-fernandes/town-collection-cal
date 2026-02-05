@@ -207,6 +207,71 @@ After this, your URL should work:
 https://trash.flaviof.com/town.ics
 ```
 
+## Security hardening
+
+**Nginx hardening**
+
+Create a small `http`-context config for rate limiting and to hide Nginx version:
+
+```bash
+cat <<'EOF' | sudo tee /etc/nginx/conf.d/town-collection-cal-security.conf >/dev/null
+server_tokens off;
+limit_req_zone $binary_remote_addr zone=ics_rate:10m rate=30r/m;
+limit_conn_zone $binary_remote_addr zone=addr:10m;
+EOF
+```
+
+After Certbot has created the HTTPS server block, add these lines inside the `server { ... }` block that listens on `443` in `/etc/nginx/sites-available/trash.flaviof.com`:
+
+```nginx
+limit_req zone=ics_rate burst=20 nodelay;
+limit_conn addr 20;
+add_header X-Content-Type-Options nosniff always;
+add_header X-Frame-Options DENY always;
+add_header Referrer-Policy no-referrer always;
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+```
+
+Then reload Nginx:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+**Docker hardening**
+
+Recreate the container with stricter runtime flags:
+
+```bash
+docker rm -f town-collection-cal
+
+docker create \
+  --name town-collection-cal \
+  -p 8080:5000 \
+  -e TOWN_ID=westford_ma \
+  -e TOWN_CONFIG_PATH=/app/towns/westford_ma/town.yaml \
+  -e DB_PATH=/app/data/generated/westford_ma.json \
+  -v /opt/town-collection-cal/towns:/app/towns:ro \
+  -v /opt/town-collection-cal/data:/app/data \
+  --read-only \
+  --tmpfs /tmp \
+  --tmpfs /var/tmp \
+  --cap-drop=ALL \
+  --security-opt no-new-privileges:true \
+  --pids-limit 200 \
+  --memory 512m \
+  --cpus 1 \
+  --log-opt max-size=10m \
+  --log-opt max-file=5 \
+  ghcr.io/flavio-fernandes/town-collection-cal:latest
+```
+
+Restart the service:
+```bash
+sudo systemctl restart town-collection-cal.service
+```
+
 
 ## 10) DNS records
 
