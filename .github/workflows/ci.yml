@@ -28,6 +28,23 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build prod image
         run: docker build -t town-collection-cal:ci .
+      - name: Build DB for smoke test
+        run: |
+          mkdir -p data/cache data/generated
+          docker run --rm \
+            -e TOWN_ID=westford_ma \
+            -e TOWN_CONFIG_PATH=/app/towns/westford_ma/town.yaml \
+            -e OUT_PATH=/app/data/generated/westford_ma.json \
+            -e CACHE_DIR=/app/data/cache \
+            -v "$PWD/towns:/app/towns" \
+            -v "$PWD/data:/app/data" \
+            --user 0:0 \
+            town-collection-cal:ci \
+            python -m town_collection_cal.updater build-db \
+              --town /app/towns/westford_ma/town.yaml \
+              --out /app/data/generated/westford_ma.json \
+              --cache-dir /app/data/cache
+          chmod 644 data/generated/westford_ma.json
       - name: Run with hardened flags
         run: |
           docker run -d --name town-collection-cal-ci \
