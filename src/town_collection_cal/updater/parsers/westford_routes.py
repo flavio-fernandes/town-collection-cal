@@ -34,6 +34,9 @@ def parse_routes(path: str | Path, url: str) -> RoutesParseResult:
     text = _extract_text(path)
     routes: list[RouteEntry] = []
     errors: list[str] = []
+    pending_street: str | None = None
+    pending_range: tuple[int | None, int | None] | None = None
+    pending_parity: str | None = None
 
     for raw_line in text.splitlines():
         line = " ".join(raw_line.split())
@@ -43,25 +46,36 @@ def parse_routes(path: str | Path, url: str) -> RoutesParseResult:
         no_collection = "no municipal collection" in line.lower()
         day_match = DAY_PATTERN.search(line)
         if not day_match and not no_collection:
+            # Possible continuation (street-only line)
+            if not COLOR_PATTERN.search(line):
+                street_only = _clean_street(line)
+                if street_only:
+                    pending_street = street_only
+                    pending_range = _extract_range(line)
+                    pending_parity = _extract_parity(line)
             continue
         day = day_match.group(1).capitalize() if day_match else None
 
         color_match = COLOR_PATTERN.search(line)
         color = color_match.group(1).upper() if color_match else None
 
-        parity_match = PARITY_PATTERN.search(line)
-        parity = parity_match.group(1).lower() if parity_match else None
+        parity = _extract_parity(line)
 
-        range_match = RANGE_PATTERN.search(line)
-        range_min, range_max = None, None
-        if range_match:
-            range_min = int(range_match.group(1))
-            range_max = int(range_match.group(2))
+        range_min, range_max = _extract_range(line)
 
-        street = line
-        for pattern in (DAY_PATTERN, COLOR_PATTERN, PARITY_PATTERN, RANGE_PATTERN):
-            street = pattern.sub(" ", street)
-        street = re.sub(r"\s+", " ", street).strip(" -")
+        street = _clean_street(line)
+        if not street and pending_street:
+            street = pending_street
+            if pending_range and (range_min is None and range_max is None):
+                range_min, range_max = pending_range
+            if pending_parity and not parity:
+                parity = pending_parity
+            pending_range = None
+            pending_parity = None
+        elif street:
+            pending_street = None
+            pending_range = None
+            pending_parity = None
 
         if not street:
             continue
@@ -101,3 +115,27 @@ def parse_routes(path: str | Path, url: str) -> RoutesParseResult:
         errors.append(f"No routes parsed from {url}")
 
     return RoutesParseResult(routes=routes, errors=errors)
+
+
+def _extract_range(line: str) -> tuple[int | None, int | None]:
+    range_match = RANGE_PATTERN.search(line)
+    if not range_match:
+        return None, None
+    return int(range_match.group(1)), int(range_match.group(2))
+
+
+def _extract_parity(line: str) -> str | None:
+    parity_match = PARITY_PATTERN.search(line)
+    return parity_match.group(1).lower() if parity_match else None
+
+
+def _clean_street(line: str) -> str:
+    street = line
+    for pattern in (DAY_PATTERN, COLOR_PATTERN, PARITY_PATTERN, RANGE_PATTERN):
+        street = pattern.sub(" ", street)
+    street = re.sub(r"\s+", " ", street).strip(" -")
+    if street.strip() in {"#", ""}:
+        return ""
+    if street.replace("#", "").strip().isdigit():
+        return ""
+    return street

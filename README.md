@@ -80,6 +80,11 @@ docker run --rm -p 5000:5000 \
 /town.ics?street=Boston%20Road&number=65
 ```
 
+Resolve-only:
+```text
+/resolve?street=Boston%20Road&number=65
+```
+
 ### Mode B: Explicit bypass (no address required)
 ```text
 /town.ics?weekday=Thursday&color=BLUE

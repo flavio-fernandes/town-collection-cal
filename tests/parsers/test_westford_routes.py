@@ -12,6 +12,19 @@ def test_parse_routes_fixture() -> None:
     assert len(result.routes) >= 2
     streets = {r.street for r in result.routes}
     assert "Boston Road" in streets
+    assert "Main St" in streets
+    assert "Littleton Rd" in streets
+
+    main_entries = [r for r in result.routes if r.street == "Main St"]
+    assert len(main_entries) == 2
+    ranges = {(c.range_min, c.range_max) for r in main_entries for c in r.constraints}
+    assert (1, 110) in ranges
+    assert (112, 204) in ranges
+
+    littleton = [r for r in result.routes if r.street == "Littleton Rd"]
+    assert len(littleton) == 1
+    assert littleton[0].weekday == "Tuesday"
+    assert littleton[0].recycling_color == "BLUE"
 
 
 def test_parse_routes_pdf_if_available() -> None:
