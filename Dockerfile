@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS builder
+FROM python:3.11-slim-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -11,10 +11,11 @@ COPY src /app/src
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential g++ python3-dev \
     && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir --upgrade pip==26.0.1 wheel==0.46.2 \
     && pip install --no-cache-dir ".[address]" \
     && pip install --no-cache-dir "gunicorn>=21"
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1

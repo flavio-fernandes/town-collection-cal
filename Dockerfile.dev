@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -13,6 +13,7 @@ COPY scripts /app/scripts
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential g++ python3-dev \
     && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir --upgrade pip==26.0.1 wheel==0.46.2 \
     && pip install --no-cache-dir -e ".[dev,address]"
 
 ENV FLASK_APP=town_collection_cal.service.app:create_app \
