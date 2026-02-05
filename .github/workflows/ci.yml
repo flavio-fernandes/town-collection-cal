@@ -38,13 +38,12 @@ jobs:
             -e CACHE_DIR=/app/data/cache \
             -v "$PWD/towns:/app/towns" \
             -v "$PWD/data:/app/data" \
-            --user 0:0 \
+            --user "$(id -u):$(id -g)" \
             town-collection-cal:ci \
             python -m town_collection_cal.updater build-db \
               --town /app/towns/westford_ma/town.yaml \
               --out /app/data/generated/westford_ma.json \
               --cache-dir /app/data/cache
-          chmod 644 data/generated/westford_ma.json
       - name: Run with hardened flags
         run: |
           docker run -d --name town-collection-cal-ci \
