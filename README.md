@@ -70,6 +70,7 @@ docker run --rm -p 5000:5000 \
 - `GET /streets` -> count of streets (use `?full=true` for list)
 - `GET /debug` -> resolved route + next pickup dates + preview list
 - `GET /town.ics` -> ICS feed
+- `GET /resolve` -> resolve address/route without generating schedule
 
 ## `/town.ics` usage
 
@@ -128,6 +129,11 @@ delay_anchor_week_sundays:
 ```bash
 ruff check .
 pytest
+```
+
+## Sanity Check
+```bash
+make sanity
 ```
 
 ## Postman

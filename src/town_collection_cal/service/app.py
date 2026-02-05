@@ -74,6 +74,14 @@ def create_app() -> Flask:
             return jsonify(result), 400
         return jsonify(result)
 
+    @app.get("/resolve")
+    def resolve() -> Any:
+        db = db_loader.get_db()
+        result = _resolve_input(db)
+        if "error" in result:
+            return jsonify(result), 400
+        return jsonify(result)
+
     @app.get("/town.ics")
     def town_ics() -> Any:
         db = db_loader.get_db()
@@ -103,6 +111,47 @@ def _resolve_request(db: Database) -> dict[str, Any]:
         types = _parse_types()
     except ValueError as exc:
         return {"error": str(exc)}
+
+    resolved = _resolve_input(db)
+    if "error" in resolved:
+        return resolved
+
+    mode = resolved["mode"]
+    if mode == "bypass":
+        try:
+            schedule = _build_schedule(
+                db, days, resolved["weekday"], resolved["color"], types
+            )
+        except ValueError as exc:
+            return {"error": str(exc)}
+        return {
+            **resolved,
+            "days": days,
+            "types": sorted(types),
+            "events": schedule,
+        }
+
+    route = resolved["route"]
+    try:
+        schedule = _build_schedule(
+            db,
+            days,
+            route["weekday"],
+            route.get("recycling_color"),
+            types,
+        )
+    except ValueError as exc:
+        return {"error": str(exc)}
+    return {
+        **resolved,
+        "days": days,
+        "types": sorted(types),
+        "events": schedule,
+    }
+
+
+def _resolve_input(db: Database) -> dict[str, Any]:
+    config = _get_config()
     mode_b = bool(request.args.get("weekday")) or bool(request.args.get("color"))
 
     if mode_b:
@@ -114,17 +163,10 @@ def _resolve_request(db: Database) -> dict[str, Any]:
             return {"error": "weekday must be Monday-Friday"}
         if color not in {"BLUE", "GREEN"}:
             return {"error": "color must be BLUE or GREEN"}
-        try:
-            schedule = _build_schedule(db, days, weekday, color, types)
-        except ValueError as exc:
-            return {"error": str(exc)}
         return {
             "mode": "bypass",
             "weekday": weekday,
             "color": color,
-            "days": days,
-            "types": sorted(types),
-            "events": schedule,
         }
 
     address = request.args.get("address")
@@ -157,24 +199,11 @@ def _resolve_request(db: Database) -> dict[str, Any]:
     if resolved.route.no_collection:
         return {"error": "No municipal collection for this address"}
 
-    try:
-        schedule = _build_schedule(
-            db,
-            days,
-            resolved.route.weekday,
-            resolved.route.recycling_color,
-            types,
-        )
-    except ValueError as exc:
-        return {"error": str(exc)}
     return {
         "mode": "address",
         "street": street,
         "number": number_int,
         "route": resolved.route.model_dump(),
-        "days": days,
-        "types": sorted(types),
-        "events": schedule,
     }
 
 

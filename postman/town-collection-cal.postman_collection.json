@@ -47,6 +47,13 @@
       }
     },
     {
+      "name": "Resolve (address)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/resolve?address=65%20Boston%20Road,%20Westford,%20MA%2001886"
+      }
+    },
+    {
       "name": "ICS (address)",
       "request": {
         "method": "GET",
