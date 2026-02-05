@@ -12,6 +12,13 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - dockerfile: Dockerfile
+            tag: latest
+          - dockerfile: Dockerfile.dev
+            tag: latest-dev
     steps:
       - uses: actions/checkout@v4
 
@@ -26,6 +33,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile
+          file: ${{ matrix.dockerfile }}
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest
+          tags: ghcr.io/${{ github.repository }}:${{ matrix.tag }}
