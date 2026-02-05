@@ -1,0 +1,159 @@
+Metadata-Version: 2.4
+Name: town-collection-cal
+Version: 0.1.0
+Summary: Town-agnostic trash and recycling schedule service with ICS output
+Author: Town Collection Cal Contributors
+License: MIT License
+        
+        Copyright (c) 2026 Flavio Fernandes
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: flask>=3.0.0
+Requires-Dist: pydantic>=2.7.0
+Requires-Dist: pydantic-settings>=2.2.1
+Requires-Dist: pdfplumber>=0.11.0
+Requires-Dist: pyyaml>=6.0.1
+Requires-Dist: requests>=2.31.0
+Requires-Dist: rapidfuzz>=3.6.1
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+Requires-Dist: ruff>=0.3.0; extra == "dev"
+Provides-Extra: address
+Requires-Dist: usaddress>=0.5.10; extra == "address"
+Dynamic: license-file
+
+# Town Collection Cal
+
+Town-agnostic service that publishes an iCalendar (ICS) feed for trash and recycling pickup dates.
+
+It uses a two-phase design:
+1. **Updater**: downloads town source documents, parses them, applies YAML overrides, and writes a validated JSON database.
+2. **Service**: loads the JSON database and serves ICS + debug endpoints.
+
+## Quick Start (Local)
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .[dev]
+```
+
+Optional address parsing (recommended):
+```bash
+pip install -e ".[dev,address]"
+```
+
+Build the DB:
+```bash
+python -m town_collection_cal.updater build-db \
+  --town towns/westford_ma/town.yaml \
+  --out data/generated/westford_ma.json \
+  --cache-dir data/cache
+```
+
+Run the service:
+```bash
+export TOWN_ID=westford_ma
+export TOWN_CONFIG_PATH=$(pwd)/towns/westford_ma/town.yaml
+export DB_PATH=$(pwd)/data/generated/westford_ma.json
+export FLASK_APP=town_collection_cal.service.app:create_app
+python -m flask run --host 0.0.0.0 --port 5000
+```
+
+## Docker (Outline)
+1. Build the image and run a container with a volume mounted for `towns/` and `data/`.
+2. Set env:
+   - `TOWN_ID=westford_ma`
+   - `TOWN_CONFIG_PATH=/app/towns/westford_ma/town.yaml`
+   - `DB_PATH=/app/data/generated/westford_ma.json`
+
+## Endpoints
+- `GET /healthz` -> `{ ok: true }`
+- `GET /version` -> DB meta + schema version
+- `GET /streets` -> count of streets (use `?full=true` for list)
+- `GET /debug` -> resolved route + next pickup dates + preview list
+- `GET /town.ics` -> ICS feed
+
+## `/town.ics` usage
+
+### Mode A: Address-driven
+```text
+/town.ics?address=65%20Boston%20Road,%20Westford,%20MA%2001886
+/town.ics?street=Boston%20Road&number=65
+```
+
+### Mode B: Explicit bypass (no address required)
+```text
+/town.ics?weekday=Thursday&color=BLUE
+/town.ics?weekday=Thursday&color=BLUE&types=trash
+```
+
+### Shared params
+- `days=` number of days ahead (default 365, capped by config)
+- `types=` comma list: `trash,recycling`
+
+## Adding a New Town
+1. Create `towns/<town_id>/town.yaml`.
+2. Provide source URLs and parser plugin paths.
+3. Add overrides:
+   - `street_aliases.yaml`
+   - `route_overrides.yaml`
+   - `holiday_overrides.yaml`
+4. Run the updater, then start the service.
+
+## Overrides Format
+`route_overrides.yaml` supports:
+```yaml
+add:
+  - street: "Example Street"
+    weekday: "Thursday"
+    recycling_color: "BLUE"
+    parity: "odd"
+    range: [1, 99]
+delete:
+  - street: "Example Street"
+    weekday: "Thursday"
+patch:
+  - street: "Example Street"
+    weekday: "Thursday"
+    recycling_color: "GREEN"
+```
+
+`holiday_overrides.yaml` supports:
+```yaml
+no_collection_dates:
+  - "2025-07-04"
+delay_anchor_week_sundays:
+  - "2025-12-28"
+```
+
+## Development
+```bash
+ruff check .
+pytest
+```
+
+## Home Assistant
+Add the ICS URL as a calendar source:
+```
+https://<host>/town.ics?address=65%20Boston%20Road,%20Westford,%20MA%2001886
+```

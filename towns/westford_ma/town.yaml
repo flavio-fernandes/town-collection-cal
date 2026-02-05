@@ -1,0 +1,38 @@
+town_id: westford_ma
+town_name: Westford
+timezone: America/New_York
+
+sources:
+  routes_pdf_url: https://westfordma.gov/DocumentCenter/View/2949/Trash-and-Recycling-Routes-by-Street-Name-PDF
+  schedule_pdf_url: https://westfordma.gov/DocumentCenter/View/16672/Recycling-Guide-2025-2026
+
+parsers:
+  routes_parser: town_collection_cal.updater.parsers.westford_routes:parse_routes
+  schedule_parser: town_collection_cal.updater.parsers.westford_guide:parse_schedule
+
+ics:
+  calendar_name_template: "{town_name} Collection"
+  default_days_ahead: 365
+  max_days_ahead: 365
+
+rules:
+  recycling:
+    mode: alternating_week
+  holidays:
+    policy_mode: yaml_overrides
+    no_collection_dates: []
+    delay_anchor_week_sundays: []
+    shift_by_one_day: true
+
+overrides_paths:
+  holiday_overrides_yaml: holiday_overrides.yaml
+  street_aliases_yaml: street_aliases.yaml
+  route_overrides_yaml: route_overrides.yaml
+
+resolver:
+  suggestion_limit: 10
+  fuzzy_threshold: 85
+
+service:
+  auto_update_on_missing_db: false
+  reload_interval_seconds: 10

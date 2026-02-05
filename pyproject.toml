@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "town-collection-cal"
+version = "0.1.0"
+description = "Town-agnostic trash and recycling schedule service with ICS output"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Town Collection Cal Contributors" }
+]
+dependencies = [
+  "flask>=3.0.0",
+  "pydantic>=2.7.0",
+  "pydantic-settings>=2.2.1",
+  "pdfplumber>=0.11.0",
+  "pyyaml>=6.0.1",
+  "requests>=2.31.0",
+  "rapidfuzz>=3.6.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "ruff>=0.3.0",
+]
+
+address = [
+  "usaddress>=0.5.10",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,3 @@
+# Map alias street names to canonical street names.
+# Example:
+# "Boston Rd": "Boston Road"

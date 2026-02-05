@@ -1,0 +1,14 @@
+flask>=3.0.0
+pydantic>=2.7.0
+pydantic-settings>=2.2.1
+pdfplumber>=0.11.0
+pyyaml>=6.0.1
+requests>=2.31.0
+rapidfuzz>=3.6.1
+
+[address]
+usaddress>=0.5.10
+
+[dev]
+pytest>=8.0.0
+ruff>=0.3.0

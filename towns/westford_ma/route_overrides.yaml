@@ -1,0 +1,17 @@
+# Route overrides format:
+# add:
+#   - street: "Example Street"
+#     weekday: "Thursday"
+#     recycling_color: "BLUE"
+#     parity: "odd"
+#     range: [1, 99]
+# delete:
+#   - street: "Example Street"
+#     weekday: "Thursday"
+# patch:
+#   - street: "Example Street"
+#     weekday: "Thursday"
+#     recycling_color: "GREEN"
+add: []
+delete: []
+patch: []

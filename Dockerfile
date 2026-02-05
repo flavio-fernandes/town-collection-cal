@@ -1,0 +1,30 @@
+FROM python:3.11-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY pyproject.toml README.md /app/
+COPY src /app/src
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential g++ python3-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir ".[address]" \
+    && pip install --no-cache-dir "gunicorn>=21"
+
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY --from=builder /usr/local /usr/local
+COPY src /app/src
+COPY towns /app/towns
+
+EXPOSE 5000
+
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "town_collection_cal.service.app:create_app()"]
