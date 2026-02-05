@@ -40,6 +40,7 @@ def fetch_with_cache(
     force_refresh: bool = False,
     timeout: int = 30,
 ) -> CacheResult:
+    url_str = str(url)
     cache_dir.mkdir(parents=True, exist_ok=True)
     content_path = cache_dir / filename
     meta_path = cache_dir / f"{filename}.meta.json"
@@ -58,7 +59,7 @@ def fetch_with_cache(
         if last_modified := meta.get("last_modified"):
             headers["If-Modified-Since"] = last_modified
 
-    response = requests.get(url, headers=headers, timeout=timeout)
+    response = requests.get(url_str, headers=headers, timeout=timeout)
 
     if response.status_code == 304 and content_path.exists():
         sha = meta.get("sha256") or _sha256_file(content_path)
@@ -67,7 +68,7 @@ def fetch_with_cache(
             sha256=sha,
             updated=False,
             status_code=304,
-            url=url,
+            url=url_str,
             etag=meta.get("etag"),
             last_modified=meta.get("last_modified"),
         )
@@ -84,7 +85,7 @@ def fetch_with_cache(
         "etag": response.headers.get("ETag"),
         "last_modified": response.headers.get("Last-Modified"),
         "sha256": sha,
-        "url": url,
+        "url": url_str,
     }
     meta_path.write_text(json.dumps(new_meta, indent=2, sort_keys=True), encoding="utf-8")
 
@@ -93,7 +94,7 @@ def fetch_with_cache(
         sha256=sha,
         updated=True,
         status_code=response.status_code,
-        url=url,
+        url=url_str,
         etag=new_meta.get("etag"),
         last_modified=new_meta.get("last_modified"),
     )
