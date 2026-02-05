@@ -37,6 +37,7 @@ References (Westford):
 - Deterministic outputs: the same DB and inputs produce the same ICS.
 - Testability: unit tests for parsing, resolution, scheduling, ICS formatting, and config validation.
 - “Future proof”: explicit versioning of DB schema and metadata, safe defaults, compatibility checks.
+- Validate all config and DB inputs before use, with flexible defaults where reasonable.
 
 
 ## Repo layout (proposed)
@@ -107,6 +108,7 @@ Key ideas:
   - Parser plugin names
   - ICS output defaults (days ahead)
   - Rule model (recycling cadence definition, holiday rules)
+  - Global defaults should be supported (with town overrides where needed)
 
 Suggested config fields (sketch):
 - `town_id`: string (e.g., `westford_ma`)
@@ -120,7 +122,7 @@ Suggested config fields (sketch):
   - `schedule_parser`: dotted import path or known plugin id
 - `ics`:
   - `calendar_name_template`: string (supports tokens)
-  - `default_days_ahead`: int
+  - `default_days_ahead`: int (global default: 365)
   - `max_days_ahead`: int
 - `rules`:
   - `recycling`:
@@ -139,6 +141,8 @@ Suggested config fields (sketch):
 
 Why config validation matters:
 - Another town should be able to adjust YAML and get immediate, clear errors on startup if something is missing or invalid.
+- Validation should be flexible and provide safe defaults when fields are omitted, but must always run before use.
+- Prefer Pydantic models and validation only (no separate JSON Schema artifacts).
 
 
 ## Database (DB) output model
@@ -174,6 +178,15 @@ The DB must be stable enough to allow:
 - Parse them via a town-specific parser plugin.
 - Merge town overrides (YAML).
 - Produce a validated DB.
+- Write DB outputs atomically (temp file then replace) to avoid clobbering a good DB.
+
+### Parser plugin interface
+- There are two separate parsers per town: a routes parser and a schedule parser.
+- Parsers receive file paths and source URLs (not just raw bytes).
+- Parsers return structured outputs plus a structured error list (not just exceptions).
+- Parsing failures must not disrupt the previously generated DB:
+  - do not overwrite the existing DB on failure
+  - log errors clearly for diagnosis
 
 ### Caching
 `http_cache` should store:
@@ -205,6 +218,10 @@ Therefore:
 - `street_aliases.yaml`: normalize and map input variants to canonical streets
 - `route_overrides.yaml`: add or patch route rows if parsing breaks due to PDF formatting
 - `holiday_overrides.yaml`: keep holiday behavior correct across seasons
+Rules:
+- Overrides always win.
+- Overrides must support deletion of parsed entries.
+- All override applications must be clearly logged.
 
 ### Updater CLI
 Required command:
@@ -223,6 +240,10 @@ Optional flags:
 - Provide an ICS endpoint
 - Provide debug and introspection endpoints
 - Handle address-based resolution OR explicit bypass options
+Additional service behavior:
+- If the DB is missing, treat it as a fatal error and halt (unless auto-update is explicitly enabled).
+- Cache the DB in memory and support live reload.
+  - Live reload should use file mtime polling on an interval that is safe for performance (default >= 10s, configurable).
 
 ### Endpoints (required)
 - `GET /healthz` -> `{ ok: true }`
@@ -268,25 +289,39 @@ Error handling requirements:
 ### Address resolution
 - Parse using `usaddress` (best effort)
 - Normalize street with a deterministic normalizer
+- Provide a common default normalization set (suffix expansion, punctuation, directionals).
+- Make normalization logic easy to update or extend later.
 - Apply `street_aliases` mapping
 - Match exact normalized key in routes
 - Apply range/parity constraints if present
 - If no match, return suggestions (RapidFuzz) but do not silently pick wrong streets
+- Return top 10 suggestions by default; make the count configurable and documented.
+- Use a reasonable default similarity threshold (e.g., 85); keep it configurable and documented.
 
 ### Event generation rules
 - For each week within `[today, today + days]`:
   - Determine trash day (weekday)
   - Determine recycling day if week color matches route color
 - Holiday rules:
-  - If town policy says “holiday week shifts by +1 day”, apply shift
-  - If “no pickup day”, skip
+  - If “no pickup day”, skip (highest priority).
+  - Otherwise if town policy says “holiday week shifts by +1 day”, apply shift.
+  - If a shifted day lands on another holiday, ignore that holiday (no cascading).
+  - Allow Friday pickups to shift to Saturday; do not carry into the next week.
 - Events must be all-day (`VALUE=DATE`) and timezone-safe
+Other rules:
+- Recycling week definition uses US Sunday-week semantics (week starts on Sunday).
+- “today” is local timezone midnight.
 
 ### ICS output requirements
 - RFC 5545 friendly formatting
 - Stable UID generation (seeded by type + date + town id)
 - `X-WR-CALNAME` should be configurable
 - `PRODID` should identify this project and optionally town id
+Additional ICS rules:
+- Event summary should be `${TOWN} Trash` or `${TOWN} Recycling` (town name from config).
+- If trash and recycling fall on the same date, merge into a single event for that date.
+- Merged event summary should be `${TOWN} Trash + Recycling`.
+- No required `DESCRIPTION`, `LOCATION`, or `CATEGORIES` fields.
 
 
 ## Agent in the cloud (for Home Assistant usage)
@@ -322,9 +357,7 @@ Configuration:
   - `DB_PATH=/app/data/generated/westford_ma.json`
 
 Service start logic:
-- if DB missing, either:
-  - fail with clear message, OR
-  - auto-run updater once (configurable)
+- if DB missing, fail with a clear message (fatal) unless auto-update is explicitly enabled
 
 
 ## Integration with HACS waste_collection_schedule
@@ -416,6 +449,7 @@ Town config docs:
   - `fixed_dates` mode where the schedule parser provides explicit recycling dates
 - Add `GET /resolve` endpoint returning route details without schedule (optional)
 - Add `GET /schedule.json` (optional) for easy client consumption
+- TODO: Non-PDF source types (CSV/HTML) when a real need arises
 
 
 ## Implementation checklist for Codex
