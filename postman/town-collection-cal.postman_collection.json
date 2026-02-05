@@ -54,6 +54,13 @@
       }
     },
     {
+      "name": "Resolve (Main St)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/resolve?street=Main%20St&number=3"
+      }
+    },
+    {
       "name": "ICS (address)",
       "request": {
         "method": "GET",
