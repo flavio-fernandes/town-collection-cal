@@ -134,8 +134,35 @@ def _clean_street(line: str) -> str:
     for pattern in (DAY_PATTERN, COLOR_PATTERN, PARITY_PATTERN, RANGE_PATTERN):
         street = pattern.sub(" ", street)
     street = re.sub(r"\s+", " ", street).strip(" -")
+    street = street.replace(".", "")
     if street.strip() in {"#", ""}:
         return ""
     if street.replace("#", "").strip().isdigit():
         return ""
+    return _fix_directional_prefix(street)
+
+
+def _fix_directional_prefix(street: str) -> str:
+    tokens = street.split()
+    if len(tokens) < 2:
+        return street
+    prefix = tokens[0].lower()
+    mapping = {
+        "n": "North",
+        "s": "South",
+        "e": "East",
+        "w": "West",
+        "no": "North",
+        "so": "South",
+        "ea": "East",
+        "we": "West",
+        "ne": "Northeast",
+        "nw": "Northwest",
+        "se": "Southeast",
+        "sw": "Southwest",
+    }
+    if prefix == "no" and tokens[1].lower() == "name":
+        return street
+    if prefix in mapping:
+        return " ".join([mapping[prefix], *tokens[1:]])
     return street

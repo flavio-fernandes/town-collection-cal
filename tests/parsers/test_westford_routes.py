@@ -14,6 +14,8 @@ def test_parse_routes_fixture() -> None:
     assert "Boston Road" in streets
     assert "Main St" in streets
     assert "Littleton Rd" in streets
+    assert "North Main St" in streets
+    assert "No Main St" not in streets
 
     main_entries = [r for r in result.routes if r.street == "Main St"]
     assert len(main_entries) == 2
@@ -25,6 +27,11 @@ def test_parse_routes_fixture() -> None:
     assert len(littleton) == 1
     assert littleton[0].weekday == "Tuesday"
     assert littleton[0].recycling_color == "BLUE"
+
+    north_main = [r for r in result.routes if r.street == "North Main St"]
+    assert len(north_main) == 1
+    assert north_main[0].weekday == "Tuesday"
+    assert north_main[0].recycling_color == "BLUE"
 
 
 def test_parse_routes_pdf_if_available() -> None:
