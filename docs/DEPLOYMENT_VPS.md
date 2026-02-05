@@ -80,6 +80,16 @@ docker create \
   -e DB_PATH=/app/data/generated/westford_ma.json \
   -v /opt/town-collection-cal/towns:/app/towns:ro \
   -v /opt/town-collection-cal/data:/app/data \
+  --read-only \
+  --tmpfs /tmp \
+  --tmpfs /var/tmp \
+  --cap-drop=ALL \
+  --security-opt no-new-privileges:true \
+  --pids-limit 200 \
+  --memory 512m \
+  --cpus 1 \
+  --log-opt max-size=10m \
+  --log-opt max-file=5 \
   ghcr.io/flavio-fernandes/town-collection-cal:latest
 ```
 
@@ -239,39 +249,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-**Docker hardening**
-
-Recreate the container with stricter runtime flags:
-
-```bash
-docker rm -f town-collection-cal
-
-docker create \
-  --name town-collection-cal \
-  -p 8080:5000 \
-  -e TOWN_ID=westford_ma \
-  -e TOWN_CONFIG_PATH=/app/towns/westford_ma/town.yaml \
-  -e DB_PATH=/app/data/generated/westford_ma.json \
-  -v /opt/town-collection-cal/towns:/app/towns:ro \
-  -v /opt/town-collection-cal/data:/app/data \
-  --read-only \
-  --tmpfs /tmp \
-  --tmpfs /var/tmp \
-  --cap-drop=ALL \
-  --security-opt no-new-privileges:true \
-  --pids-limit 200 \
-  --memory 512m \
-  --cpus 1 \
-  --log-opt max-size=10m \
-  --log-opt max-file=5 \
-  ghcr.io/flavio-fernandes/town-collection-cal:latest
-```
-
-Restart the service:
-```bash
-sudo systemctl restart town-collection-cal.service
-```
-
+Docker hardening flags are already included in step 5.
 
 ## 10) DNS records
 
