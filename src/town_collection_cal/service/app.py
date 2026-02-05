@@ -22,10 +22,12 @@ logger = logging.getLogger(__name__)
 
 def create_app() -> Flask:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    config, town_dir = load_from_env()
+    config, town_dir, config_path = load_from_env()
+    logger.info("Loaded config: %s (town_id=%s)", config_path, config.town_id)
 
     db_path = Path(os.getenv("DB_PATH") or f"data/generated/{config.town_id}.json").resolve()
-    if not db_path.exists():
+    logger.info("Using DB path: %s", db_path)
+    if not db_path.exists() or not db_path.is_file():
         if config.service.auto_update_on_missing_db:
             logger.info("DB missing; attempting auto-update")
             build_db(
@@ -36,7 +38,9 @@ def create_app() -> Flask:
                 validate_only=False,
             )
         else:
-            raise FileNotFoundError(f"DB file missing: {db_path}")
+            raise FileNotFoundError(
+                f"DB file missing: {db_path} (run updater or set DB_PATH)"
+            )
 
     db_loader = DbLoader(db_path, config.service.reload_interval_seconds)
 

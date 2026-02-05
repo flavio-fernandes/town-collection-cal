@@ -34,4 +34,10 @@ USER app
 
 EXPOSE 5000
 
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "town_collection_cal.service.app:create_app()"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD python -c "import sys,urllib.request; \
+url='http://127.0.0.1:5000/healthz'; \
+urllib.request.urlopen(url, timeout=2).read(); \
+sys.exit(0)"
+
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info", "town_collection_cal.service.app:create_app()"]

@@ -26,13 +26,18 @@ def resolve_config_path(town_id: str | None = None, config_path: str | None = No
 
 
 def load_town_config(config_path: Path) -> tuple[TownConfig, Path]:
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+    if not config_path.is_file():
+        raise FileNotFoundError(f"Config path is not a file: {config_path}")
     data = _load_yaml(config_path)
     config = validate_config(data)
     return config, config_path.parent.resolve()
 
 
-def load_from_env() -> tuple[TownConfig, Path]:
+def load_from_env() -> tuple[TownConfig, Path, Path]:
     town_id = os.getenv("TOWN_ID")
     config_path = os.getenv("TOWN_CONFIG_PATH")
     path = resolve_config_path(town_id=town_id, config_path=config_path)
-    return load_town_config(path)
+    config, town_dir = load_town_config(path)
+    return config, town_dir, path
