@@ -258,7 +258,7 @@ def _events_to_ics(
 
 def _summary_for_types(town_name: str, types: set[str]) -> str:
     if types == {"trash", "recycling"}:
-        return f"{town_name} Trash + Recycling"
+        return f"{town_name} Recycling + Trash"
     if "recycling" in types and "trash" not in types:
         return f"{town_name} Recycling"
     return f"{town_name} Trash"
