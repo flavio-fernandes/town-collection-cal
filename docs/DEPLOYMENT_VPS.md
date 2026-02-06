@@ -19,7 +19,7 @@ All commands below are intended for your VPS (Ubuntu 22.04).
 
 ```bash
 sudo apt update
-sudo apt install -y git nginx
+sudo apt install -y git nginx ripgrep
 ```
 
 Ensure the firewall and any cloud security group allow inbound `80` and `443`.
@@ -53,6 +53,7 @@ Run the updater inside a one-off container so you don’t need Python on the hos
 
 ```bash
 docker run --rm \
+  --user "$(id -u):$(id -g)" \
   -e TOWN_ID=westford_ma \
   -e TOWN_CONFIG_PATH=/app/towns/westford_ma/town.yaml \
   -e OUT_PATH=/app/data/generated/westford_ma.json \
@@ -67,6 +68,8 @@ docker run --rm \
 ```
 
 You should now have `/opt/town-collection-cal/data/generated/westford_ma.json`.
+If you see a permission error, ensure `/opt/town-collection-cal/data` is writable
+by your user or rerun the command with `sudo chown -R $USER:$USER /opt/town-collection-cal/data`.
 
 
 ## 5) Create the container (not started yet)
