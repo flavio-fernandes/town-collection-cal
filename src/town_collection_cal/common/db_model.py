@@ -30,7 +30,7 @@ class CalendarPolicy(BaseModel):
 
 class HolidayPolicy(BaseModel):
     no_collection_dates: list[date] = Field(default_factory=list)
-    delay_anchor_week_sundays: list[date] = Field(default_factory=list)
+    shift_holidays: list[date] = Field(default_factory=list)
     shift_by_one_day: bool = True
 
 

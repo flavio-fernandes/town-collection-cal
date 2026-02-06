@@ -1,0 +1,10 @@
+# Holiday rules for Westford.
+# Dates use ISO format (YYYY-MM-DD).
+no_collection_dates: []
+shift_holidays:
+  - "2025-07-04"
+  - "2025-09-01"
+  - "2025-11-27"
+  - "2025-12-25"
+  - "2026-01-01"
+  - "2026-05-25"

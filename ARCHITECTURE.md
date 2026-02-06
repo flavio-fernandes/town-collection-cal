@@ -71,7 +71,7 @@ References (Westford):
 ├── towns/
 │   └── westford_ma/
 │       ├── town.yaml                (town config)
-│       ├── holiday_overrides.yaml   (holiday weeks/dates overrides)
+│       ├── holiday_rules.yaml       (holiday weeks/dates overrides)
 │       ├── street_aliases.yaml      (alias mapping)
 │       └── route_overrides.yaml     (manual route patches)
 ├── data/
@@ -133,9 +133,9 @@ Suggested config fields (sketch):
   - `holidays`:
     - `policy_mode`: `yaml_overrides` | `parser_extracted`
     - `no_collection_dates`: optional
-    - `delay_anchor_week_sundays`: optional
+    - `shift_holidays`: optional list of holiday dates
 - `overrides_paths`:
-  - `holiday_overrides_yaml`
+  - `holiday_rules_yaml`
   - `street_aliases_yaml`
   - `route_overrides_yaml`
 
@@ -158,7 +158,8 @@ DB should include:
 - `calendar_policy`:
   - anchor data and any rule info needed at runtime
 - `holiday_policy`:
-  - lists of ISO dates and/or week anchors
+  - `no_collection_dates`: dates that are skipped entirely
+  - `shift_holidays`: dates that shift pickups on/after the holiday by +1 day
 - `aliases`:
   - normalized alias mappings
 - `routes`:
@@ -211,13 +212,13 @@ The DB must be stable enough to allow:
 ### Known brittle area: holidays
 The printed “O” marker (or similar) used in calendar grids often does not survive text extraction.
 Therefore:
-- default to `holiday_overrides.yaml` for correctness
+- default to `holiday_rules.yaml` for correctness
 - allow future enhancement where a parser extracts holiday data more reliably if feasible
 
 ### Overrides
 - `street_aliases.yaml`: normalize and map input variants to canonical streets
 - `route_overrides.yaml`: add or patch route rows if parsing breaks due to PDF formatting
-- `holiday_overrides.yaml`: keep holiday behavior correct across seasons
+- `holiday_rules.yaml`: keep holiday behavior correct across seasons
 Rules:
 - Overrides always win.
 - Overrides must support deletion of parsed entries.
@@ -304,8 +305,8 @@ Error handling requirements:
   - Determine recycling day if week color matches route color
 - Holiday rules:
   - If “no pickup day”, skip (highest priority).
-  - Otherwise if town policy says “holiday week shifts by +1 day”, apply shift.
-  - If a shifted day lands on another holiday, ignore that holiday (no cascading).
+  - Otherwise if a week contains a holiday shift date for this route color, shift pickups on or after that holiday date by +1 day.
+  - If multiple holidays are in the same week, use the earliest date (no cascading).
   - Allow Friday pickups to shift to Saturday; do not carry into the next week.
 - Events must be all-day (`VALUE=DATE`) and timezone-safe
 Other rules:
@@ -444,7 +445,7 @@ Town config docs:
 ## Open questions / planned enhancements
 - Holiday extraction:
   - if a town provides a structured list of holiday impacts, prefer that
-  - otherwise keep `holiday_overrides.yaml` as the canonical method
+  - otherwise keep `holiday_rules.yaml` as the canonical method
 - Support towns that do not use alternating blue/green:
   - `fixed_dates` mode where the schedule parser provides explicit recycling dates
 - Add `GET /resolve` endpoint returning route details without schedule (optional)

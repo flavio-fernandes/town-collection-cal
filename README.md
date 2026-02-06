@@ -101,7 +101,7 @@ Resolve-only:
 3. Add overrides:
    - `street_aliases.yaml`
    - `route_overrides.yaml`
-   - `holiday_overrides.yaml`
+   - `holiday_rules.yaml`
 4. Run the updater, then start the service.
 
 ## Overrides Format
@@ -122,12 +122,14 @@ patch:
     recycling_color: "GREEN"
 ```
 
-`holiday_overrides.yaml` supports:
+`holiday_rules.yaml` supports:
 ```yaml
 no_collection_dates:
   - "2025-07-04"
-delay_anchor_week_sundays:
-  - "2025-12-28"
+shift_holidays:
+  - "2025-07-04"
+  - "2025-09-01"
+  - "2025-12-25"
 ```
 
 ## Development

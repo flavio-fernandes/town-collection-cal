@@ -91,12 +91,12 @@ def _coerce_holiday_policy(
     no_collection = list(holidays.no_collection_dates) or list(
         schedule_result.holiday_policy.no_collection_dates
     )
-    delay_weeks = list(holidays.delay_anchor_week_sundays) or list(
-        schedule_result.holiday_policy.delay_anchor_week_sundays
+    shift_holidays = list(holidays.shift_holidays) or list(
+        schedule_result.holiday_policy.shift_holidays
     )
     return HolidayPolicy(
         no_collection_dates=no_collection,
-        delay_anchor_week_sundays=delay_weeks,
+        shift_holidays=shift_holidays,
         shift_by_one_day=holidays.shift_by_one_day,
     )
 
@@ -149,7 +149,7 @@ def build_db(
         town_dir, config.overrides_paths.street_aliases_yaml
     )
     holiday_path = _resolve_override_path(
-        town_dir, config.overrides_paths.holiday_overrides_yaml
+        town_dir, config.overrides_paths.holiday_rules_yaml
     )
     route_overrides_path = _resolve_override_path(
         town_dir, config.overrides_paths.route_overrides_yaml

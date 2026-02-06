@@ -54,11 +54,22 @@ def apply_holiday_overrides(
     if "no_collection_dates" in data:
         updated.no_collection_dates = [date.fromisoformat(d) for d in data["no_collection_dates"]]
         logger.info("Holiday override: replaced no_collection_dates")
-    if "delay_anchor_week_sundays" in data:
-        updated.delay_anchor_week_sundays = [
-            date.fromisoformat(d) for d in data["delay_anchor_week_sundays"]
-        ]
-        logger.info("Holiday override: replaced delay_anchor_week_sundays")
+    if "shift_holidays" in data:
+        shifts: list[date] = []
+        raw = data["shift_holidays"] or []
+        if not isinstance(raw, list):
+            raise ValueError(f"shift_holidays must be a list: {overrides_path}")
+        for entry in raw:
+            if isinstance(entry, str):
+                shifts.append(date.fromisoformat(entry))
+            elif isinstance(entry, dict):
+                if "date" not in entry:
+                    raise ValueError(f"shift_holidays entry missing date: {overrides_path}")
+                shifts.append(date.fromisoformat(str(entry["date"])))
+            else:
+                raise ValueError(f"shift_holidays entry must be string or mapping: {overrides_path}")
+        updated.shift_holidays = shifts
+        logger.info("Holiday override: replaced shift_holidays")
     return updated
 
 

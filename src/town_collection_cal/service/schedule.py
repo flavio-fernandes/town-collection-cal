@@ -54,17 +54,25 @@ def generate_schedule(
     anchor_sunday = calendar_policy.anchor_week_sunday
     anchor_color = calendar_policy.anchor_color
 
+    shift_by_week: dict[date, list[date]] = {}
+    if holiday_policy.shift_by_one_day:
+        for holiday in holiday_policy.shift_holidays:
+            week = _week_sunday(holiday)
+            shift_by_week.setdefault(week, []).append(holiday)
+
     week_start = _week_sunday(start_date)
     current = week_start
 
     while current <= end_date:
         base_trash_date = current + timedelta(days=trash_offset)
-        shift_week = (
-            holiday_policy.shift_by_one_day and current in holiday_policy.delay_anchor_week_sundays
-        )
+        holiday_cutoff = None
+        if holiday_policy.shift_by_one_day:
+            dates = shift_by_week.get(current)
+            if dates:
+                holiday_cutoff = min(dates)
 
         trash_date = _apply_holiday_shift(
-            base_trash_date, shift_week, holiday_policy.no_collection_dates
+            base_trash_date, holiday_cutoff, holiday_policy.no_collection_dates
         )
         if trash_date and start_date <= trash_date <= end_date:
             events.setdefault(trash_date, set()).add("trash")
@@ -76,7 +84,7 @@ def generate_schedule(
             if week_color == recycling_color.upper():
                 base_recycling_date = current + timedelta(days=trash_offset)
                 recycling_date = _apply_holiday_shift(
-                    base_recycling_date, shift_week, holiday_policy.no_collection_dates
+                    base_recycling_date, holiday_cutoff, holiday_policy.no_collection_dates
                 )
                 if recycling_date and start_date <= recycling_date <= end_date:
                     events.setdefault(recycling_date, set()).add("recycling")
@@ -87,10 +95,12 @@ def generate_schedule(
 
 
 def _apply_holiday_shift(
-    base_date: date, shift_week: bool, no_collection_dates: list[date]
+    base_date: date, holiday_cutoff: date | None, no_collection_dates: list[date]
 ) -> date | None:
     if base_date in no_collection_dates:
         return None
-    if not shift_week:
+    if not holiday_cutoff:
+        return base_date
+    if base_date < holiday_cutoff:
         return base_date
     return base_date + timedelta(days=1)

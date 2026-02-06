@@ -25,7 +25,7 @@ This document explains how the updater fetches and parses town PDFs, and how to 
 4. **Apply overrides**
    - `street_aliases.yaml`: normalize + map aliases
    - `route_overrides.yaml`: add/patch/delete routes
-   - `holiday_overrides.yaml`: authoritative holiday dates/week-shifts
+  - `holiday_rules.yaml`: authoritative holiday dates/week-shifts
    - Overrides always win and are logged.
 
 5. **Write DB**
@@ -108,7 +108,8 @@ PY
   - Or set anchor explicitly in `town.yaml` under `rules.recycling` (preferred if parser is brittle).
 
 **3) Holiday behavior is wrong**
-- Use `towns/westford_ma/holiday_overrides.yaml` as the source of truth.
+- Use `towns/westford_ma/holiday_rules.yaml` as the source of truth.
+- For date-based shifts, add entries under `shift_holidays`.
 
 **4) URL changed (e.g., 2027 guide)**
 - Update `towns/westford_ma/town.yaml`:
@@ -125,4 +126,4 @@ PY
 4. If parsing fails:
    - Add overrides for the failing entries.
    - Update parser patterns as needed.
-5. Update `holiday_overrides.yaml` for the new year.
+5. Update `holiday_rules.yaml` for the new year.

@@ -67,7 +67,7 @@ class RecyclingRulesConfig(BaseModel):
 class HolidayRulesConfig(BaseModel):
     policy_mode: HolidayPolicyMode
     no_collection_dates: list[date] = Field(default_factory=list)
-    delay_anchor_week_sundays: list[date] = Field(default_factory=list)
+    shift_holidays: list[date] = Field(default_factory=list)
     shift_by_one_day: bool = True
 
 
@@ -77,9 +77,16 @@ class RulesConfig(BaseModel):
 
 
 class OverridesPathsConfig(BaseModel):
+    holiday_rules_yaml: str | None = None
     holiday_overrides_yaml: str | None = None
     street_aliases_yaml: str | None = None
     route_overrides_yaml: str | None = None
+
+    @model_validator(mode="after")
+    def _coerce_holiday_rules(self) -> OverridesPathsConfig:
+        if not self.holiday_rules_yaml and self.holiday_overrides_yaml:
+            self.holiday_rules_yaml = self.holiday_overrides_yaml
+        return self
 
 
 class ResolverConfig(BaseModel):

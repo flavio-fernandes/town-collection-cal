@@ -21,11 +21,10 @@ rules:
   holidays:
     policy_mode: yaml_overrides
     no_collection_dates: []
-    delay_anchor_week_sundays: []
     shift_by_one_day: true
 
 overrides_paths:
-  holiday_overrides_yaml: holiday_overrides.yaml
+  holiday_rules_yaml: holiday_rules.yaml
   street_aliases_yaml: street_aliases.yaml
   route_overrides_yaml: route_overrides.yaml
 
