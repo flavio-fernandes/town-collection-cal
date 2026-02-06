@@ -3,6 +3,7 @@ name: Publish Docker Image
 on:
   push:
     branches: ["**"]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +12,7 @@ permissions:
 
 jobs:
   publish-prod:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +30,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push (prod)
+      - name: Build and push (prod latest)
+        if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -40,7 +42,20 @@ jobs:
             GIT_COMMIT=${{ github.sha }}
           tags: ghcr.io/${{ github.repository }}:latest
 
+      - name: Build and push (prod tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+
   publish-dev:
+    if: startsWith(github.ref, 'refs/heads/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
