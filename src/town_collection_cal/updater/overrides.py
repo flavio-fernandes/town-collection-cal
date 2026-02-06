@@ -67,7 +67,9 @@ def apply_holiday_overrides(
                     raise ValueError(f"shift_holidays entry missing date: {overrides_path}")
                 shifts.append(date.fromisoformat(str(entry["date"])))
             else:
-                raise ValueError(f"shift_holidays entry must be string or mapping: {overrides_path}")
+                raise ValueError(
+                    f"shift_holidays entry must be string or mapping: {overrides_path}"
+                )
         updated.shift_holidays = shifts
         logger.info("Holiday override: replaced shift_holidays")
     return updated
