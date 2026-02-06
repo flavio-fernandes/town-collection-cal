@@ -73,7 +73,8 @@ by your user and rerun the command with `--user "$(id -u):$(id -g)"`.
 
 **Permissions model (recommended):**
 - Keep `/opt/town-collection-cal/data` owned by your host user (e.g., `ubuntu`).
-- Always run the DB updater with `--user "$(id -u):$(id -g)"` so it can write.
+- Run the DB updater service as that same host user.
+- Use `--user <uid>:<gid>` so files are owned by the host user.
 - The main service container runs as `app` (uid `10001`) but only needs read access.
 
 
@@ -288,8 +289,8 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-Environment=RUN_UID=1000
-Environment=RUN_GID=1000
+User=ubuntu
+Group=ubuntu
 ExecStart=/usr/bin/docker run --rm \
   -e TOWN_ID=westford_ma \
   -e TOWN_CONFIG_PATH=/app/towns/westford_ma/town.yaml \
@@ -297,7 +298,7 @@ ExecStart=/usr/bin/docker run --rm \
   -e CACHE_DIR=/app/data/cache \
   -v /opt/town-collection-cal/towns:/app/towns \
   -v /opt/town-collection-cal/data:/app/data \
-  --user ${RUN_UID}:${RUN_GID} \
+  --user 1001:1001 \
   ghcr.io/flavio-fernandes/town-collection-cal:latest \
   python -m town_collection_cal.updater build-db \
     --town /app/towns/westford_ma/town.yaml \
@@ -306,7 +307,8 @@ ExecStart=/usr/bin/docker run --rm \
 EOF
 ```
 
-Set `RUN_UID` and `RUN_GID` above to match your host user (`id -u` and `id -g`).
+Replace `User=`, `Group=`, and `--user` with your host user and its UID/GID.
+Check with `id -u` and `id -g`.
 Ensure `/opt/town-collection-cal/data` is owned by that user:
 
 ```bash
