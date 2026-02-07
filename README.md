@@ -64,9 +64,29 @@ docker run --rm -p 5000:5000 \
   town-collection-cal:prod
 ```
 
+## Website (Frontend)
+The repository now includes a static web app in `web/` that helps residents generate subscription URLs without exposing addresses in the final URL.
+
+Quick start:
+```bash
+cd web
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Recommended full local stack:
+```bash
+docker compose up --build
+```
+
+Then open:
+- Web UI: `http://localhost:5173`
+- Backend API: `http://localhost:5000`
+
 ## Endpoints
 - `GET /healthz` -> `{ ok: true }`
-- `GET /version` -> DB meta + schema version
+- `GET /version` -> service version + DB meta + schema version
 - `GET /streets` -> count of streets (use `?full=true` for list)
 - `GET /debug` -> resolved route + next pickup dates + preview list
 - `GET /town.ics` -> ICS feed
@@ -90,6 +110,10 @@ Resolve-only:
 /town.ics?weekday=Thursday&color=BLUE
 /town.ics?weekday=Thursday&color=BLUE&types=trash
 ```
+
+Website behavior note:
+- the UI always emits Mode B subscription URLs (privacy-friendly).
+- address inputs are only used for route resolution and preview.
 
 ### Shared params
 - `days=` number of days ahead (default 365, capped by config)

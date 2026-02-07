@@ -1,0 +1,28 @@
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;700&family=Outfit:wght@400;500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #0f172a;
+  background: #f7faf8;
+  font-family: "Outfit", "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(80rem 50rem at 10% -5%, rgba(126, 228, 201, 0.46), rgba(255, 255, 255, 0)),
+    radial-gradient(60rem 40rem at 90% -8%, rgba(147, 210, 255, 0.42), rgba(255, 255, 255, 0)),
+    linear-gradient(170deg, #f4fff8 0%, #eef8ff 40%, #fff7e2 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(20, 184, 166, 0.25);
+}

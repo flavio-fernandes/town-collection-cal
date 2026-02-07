@@ -1,0 +1,42 @@
+{
+  "towns": [
+    {
+      "id": "westford_ma",
+      "name": "Westford, MA",
+      "slug": "westford-ma",
+      "api": {
+        "baseUrl": "",
+        "icsPath": "/town.ics",
+        "resolvePath": "/resolve",
+        "debugPath": "/debug",
+        "versionPath": "/version",
+        "streetsPath": "/streets"
+      },
+      "ui": {
+        "badge": "Westford",
+        "heroTitle": "Trash and Recycling Calendar",
+        "heroSubtitle": "Subscribe once and keep your collection schedule current.",
+        "theme": {
+          "from": "#d7f7ec",
+          "via": "#a9e7ff",
+          "to": "#fff5d8"
+        },
+        "officialRoutesDoc": "https://westfordma.gov/DocumentCenter/View/2949/Trash-and-Recycling-Routes-by-Street-Name-PDF"
+      },
+      "capabilities": {
+        "explicitBypass": {
+          "enabled": true,
+          "weekdayValues": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          "colorValues": ["BLUE", "GREEN"],
+          "typeValues": ["trash", "recycling"]
+        },
+        "addressResolution": {
+          "enabled": true,
+          "supportsAddressField": true,
+          "supportsStreetNumberFields": true,
+          "usesSuggestions": true
+        }
+      }
+    }
+  ]
+}

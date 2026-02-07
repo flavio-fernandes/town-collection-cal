@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Redirecting...</title>
+  </head>
+  <body>
+    <script>
+      (function () {
+        var path = window.location.pathname || "/";
+        var query = window.location.search ? window.location.search.slice(1) : "";
+        var destination = "/?p=" + encodeURIComponent(path) + (query ? "&q=" + encodeURIComponent(query) : "");
+        window.location.replace(destination);
+      })();
+    </script>
+  </body>
+</html>

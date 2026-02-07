@@ -1,0 +1,57 @@
+services:
+  updater:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command:
+      - python
+      - -m
+      - town_collection_cal.updater
+      - build-db
+      - --town
+      - /app/towns/westford_ma/town.yaml
+      - --out
+      - /app/data/generated/westford_ma.json
+      - --cache-dir
+      - /app/data/cache
+    environment:
+      TOWN_ID: westford_ma
+      TOWN_CONFIG_PATH: /app/towns/westford_ma/town.yaml
+      OUT_PATH: /app/data/generated/westford_ma.json
+      CACHE_DIR: /app/data/cache
+    volumes:
+      - ./towns:/app/towns
+      - ./data:/app/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    depends_on:
+      updater:
+        condition: service_completed_successfully
+    environment:
+      TOWN_ID: westford_ma
+      TOWN_CONFIG_PATH: /app/towns/westford_ma/town.yaml
+      DB_PATH: /app/data/generated/westford_ma.json
+      FLASK_APP: town_collection_cal.service.app:create_app
+    volumes:
+      - ./src:/app/src
+      - ./towns:/app/towns
+      - ./data:/app/data
+    ports:
+      - "5000:5000"
+
+  web:
+    image: node:20-bookworm
+    working_dir: /app
+    depends_on:
+      - backend
+    environment:
+      VITE_API_BASE_URL: ""
+      VITE_DEV_PROXY_TARGET: http://backend:5000
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    volumes:
+      - ./web:/app
+    ports:
+      - "5173:5173"
