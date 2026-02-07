@@ -82,7 +82,15 @@ docker compose up --build
 
 Then open:
 - Web UI: `http://localhost:5173`
-- Backend API: `http://localhost:5000`
+- Backend API is reachable through the web dev server proxy on the same origin (`http://localhost:5173`).
+
+Port-conflict options:
+- Change web host port:
+  - `HOST_WEB_PORT=5180 docker compose up --build`
+- Expose backend directly on host only when needed:
+  - `docker compose -f docker-compose.yml -f docker-compose.backend-host.yml up --build`
+- Change direct backend host port:
+  - `HOST_BACKEND_PORT=5001 docker compose -f docker-compose.yml -f docker-compose.backend-host.yml up --build`
 
 ## Endpoints
 - `GET /healthz` -> `{ ok: true }`
@@ -173,6 +181,8 @@ Other useful targets:
 - `make test-py`
 - `make test-web`
 - `make build-web`
+- `make audit-py`
+- `make audit-web`
 - `make help`
 
 ## Sanity Check

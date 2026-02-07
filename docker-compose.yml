@@ -39,8 +39,6 @@ services:
       - ./src:/app/src
       - ./towns:/app/towns
       - ./data:/app/data
-    ports:
-      - "5000:5000"
 
   web:
     image: node:20-bookworm
@@ -54,4 +52,4 @@ services:
     volumes:
       - ./web:/app
     ports:
-      - "5173:5173"
+      - "${HOST_WEB_PORT:-5173}:5173"

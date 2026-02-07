@@ -4,6 +4,7 @@ SHELL := bash
 .PHONY: sanity run-prod-hardened update-db \
 	help bootstrap-py bootstrap-web \
 	lint-py test-py lint-web test-web build-web \
+	audit-py audit-web \
 	check test-all
 
 PYTHON ?= .venv/bin/python
@@ -30,6 +31,8 @@ help:
 		"  make lint-web      - run web lint" \
 		"  make test-web      - run web unit tests" \
 		"  make build-web     - build web app" \
+		"  make audit-py      - run Python dependency CVE scan (requires pip-audit)" \
+		"  make audit-web     - run npm audit for high+ issues" \
 		"  make check         - lint + test (py + web)" \
 		"  make test-all      - test suites only (py + web)"
 
@@ -41,8 +44,11 @@ bootstrap-py:
 bootstrap-web:
 	@if command -v npm >/dev/null 2>&1; then \
 		cd $(WEB_DIR) && npm install; \
-	else \
+	elif command -v docker >/dev/null 2>&1; then \
 		$(WEB_DOCKER_RUN) sh -lc "npm install"; \
+	else \
+		echo "error: neither npm nor docker is available for web bootstrap" >&2; \
+		exit 1; \
 	fi
 
 lint-py:
@@ -54,22 +60,49 @@ test-py:
 lint-web:
 	@if command -v npm >/dev/null 2>&1; then \
 		cd $(WEB_DIR) && npm run lint; \
-	else \
+	elif command -v docker >/dev/null 2>&1; then \
 		$(WEB_DOCKER_RUN) sh -lc "npm install && npm run lint"; \
+	else \
+		echo "error: neither npm nor docker is available for web lint" >&2; \
+		exit 1; \
 	fi
 
 test-web:
 	@if command -v npm >/dev/null 2>&1; then \
 		cd $(WEB_DIR) && npm run test; \
-	else \
+	elif command -v docker >/dev/null 2>&1; then \
 		$(WEB_DOCKER_RUN) sh -lc "npm install && npm run test"; \
+	else \
+		echo "error: neither npm nor docker is available for web tests" >&2; \
+		exit 1; \
 	fi
 
 build-web:
 	@if command -v npm >/dev/null 2>&1; then \
 		cd $(WEB_DIR) && npm run build; \
-	else \
+	elif command -v docker >/dev/null 2>&1; then \
 		$(WEB_DOCKER_RUN) sh -lc "npm install && npm run build"; \
+	else \
+		echo "error: neither npm nor docker is available for web build" >&2; \
+		exit 1; \
+	fi
+
+audit-py:
+	@if $(PYTHON) -c "import pip_audit" >/dev/null 2>&1; then \
+		$(PYTHON) -m pip_audit; \
+	else \
+		echo "error: pip-audit not installed in .venv. Run: $(PIP) install pip-audit" >&2; \
+		exit 1; \
+	fi
+
+audit-web:
+	@if command -v npm >/dev/null 2>&1; then \
+		cd $(WEB_DIR) && npm audit --audit-level=high; \
+	elif command -v docker >/dev/null 2>&1; then \
+		$(WEB_DOCKER_RUN) sh -lc "npm install && npm audit --audit-level=high"; \
+	else \
+		echo "error: neither npm nor docker is available for web audit" >&2; \
+		exit 1; \
 	fi
 
 check: lint-py test-py lint-web test-web
