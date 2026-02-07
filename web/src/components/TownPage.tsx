@@ -308,9 +308,7 @@ export function TownPage({ town }: TownPageProps) {
 
         <form onSubmit={handleResolveSubmit} className="rounded-3xl border border-white/50 bg-white/75 p-6 shadow-glass backdrop-blur">
           <h2 className="font-heading text-2xl text-slate-800">I do not know my pickup info</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Resolve your route from address input, then generate a privacy-friendly Mode B URL.
-          </p>
+          <p className="mt-2 text-sm text-slate-600">Resolve your route from address.</p>
 
           <label className="mt-4 block text-sm text-slate-700">
             Full address (optional)

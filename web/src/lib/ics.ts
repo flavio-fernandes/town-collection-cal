@@ -12,6 +12,10 @@ function uniqueTypes(input: CollectionType[]): CollectionType[] {
   return ordered.length ? ordered : ["trash", "recycling"];
 }
 
+function isDefaultTypes(types: CollectionType[]): boolean {
+  return types.length === 2 && types[0] === "trash" && types[1] === "recycling";
+}
+
 function parseDays(days?: number): number | undefined {
   if (!days || Number.isNaN(days) || days < 1) {
     return undefined;
@@ -41,7 +45,9 @@ function buildModeBUrl(path: string, town: TownConfig, selection: ModeBSelection
 
   url.searchParams.set("weekday", selection.weekday);
   url.searchParams.set("color", selection.color);
-  url.searchParams.set("types", types.join(","));
+  if (!isDefaultTypes(types)) {
+    url.searchParams.set("types", types.join(","));
+  }
   if (days) {
     url.searchParams.set("days", String(days));
   }

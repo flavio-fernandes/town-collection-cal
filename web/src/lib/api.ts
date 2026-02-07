@@ -23,6 +23,22 @@ export class ApiClientError extends Error {
   }
 }
 
+function normalizeTypesForParams(types: ModeBSelection["types"]): ModeBSelection["types"] {
+  const set = new Set(types);
+  const ordered: ModeBSelection["types"] = [];
+  if (set.has("trash")) {
+    ordered.push("trash");
+  }
+  if (set.has("recycling")) {
+    ordered.push("recycling");
+  }
+  return ordered.length ? ordered : ["trash", "recycling"];
+}
+
+function shouldOmitTypes(types: ModeBSelection["types"]): boolean {
+  return types.length === 2 && types[0] === "trash" && types[1] === "recycling";
+}
+
 function apiBase(town: TownConfig): string {
   const fromEnv = import.meta.env.VITE_API_BASE_URL?.trim();
   const fromTown = town.api.baseUrl?.trim();
@@ -139,9 +155,12 @@ export async function fetchDebugPreview(
   selection: ModeBSelection,
 ): Promise<DebugSuccess> {
   const params = new URLSearchParams();
+  const types = normalizeTypesForParams(selection.types);
   params.set("weekday", selection.weekday);
   params.set("color", selection.color);
-  params.set("types", selection.types.join(","));
+  if (!shouldOmitTypes(types)) {
+    params.set("types", types.join(","));
+  }
   if (selection.days && selection.days > 0) {
     params.set("days", String(selection.days));
   }

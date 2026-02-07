@@ -43,7 +43,7 @@ const town: TownConfig = {
 };
 
 describe("buildSubscriptionUrl", () => {
-  it("builds a Mode B URL with expected query params", () => {
+  it("omits types for default trash+recycling selection", () => {
     const url = buildSubscriptionUrl(town, {
       weekday: "Thursday",
       color: "BLUE",
@@ -51,9 +51,18 @@ describe("buildSubscriptionUrl", () => {
       days: 120,
     });
 
-    expect(url).toBe(
-      "https://trash.example.com/town.ics?weekday=Thursday&color=BLUE&types=trash%2Crecycling&days=120",
-    );
+    expect(url).toBe("https://trash.example.com/town.ics?weekday=Thursday&color=BLUE&days=120");
+  });
+
+  it("includes types when user selects non-default types", () => {
+    const url = buildSubscriptionUrl(town, {
+      weekday: "Thursday",
+      color: "BLUE",
+      types: ["trash"],
+      days: 120,
+    });
+
+    expect(url).toBe("https://trash.example.com/town.ics?weekday=Thursday&color=BLUE&types=trash&days=120");
   });
 
   it("never includes address fields", () => {
