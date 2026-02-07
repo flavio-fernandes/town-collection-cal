@@ -38,7 +38,9 @@ Shared params:
 - `days=` days ahead (default 365, capped by config)
 - `types=` `trash,recycling`
 
-The website must deeply leverage Mode B, and only use Mode A plus `/resolve` when necessary.
+The website should prefer Mode B for generated subscription URLs (privacy-friendly, no address in URL).
+Use `/resolve` (and optionally `/debug`) to derive weekday/color when the user does not know them.
+After resolution, generated subscription URLs must stay in Mode B and must never include address/street params.
 
 ### Website requirements
 
@@ -50,6 +52,8 @@ The website must deeply leverage Mode B, and only use Mode A plus `/resolve` whe
   2) “I do not know my pickup info” -- use `/resolve` to determine weekday and color from address, including seamless handling of suggestions.
 - Westford page must display backend version (from `/version`) discreetly.
 - The main domain currently serving the backend must redirect (or be migrated) so that visiting the base URL shows the website.
+- If website and API are on different origins, API responses must include CORS headers for browser calls.
+- Selected deployment direction: **Option 1** (single public hostname with path-based edge routing).
 
 ---
 
@@ -79,6 +83,8 @@ This can be implemented via any reverse proxy or edge provider that supports pat
 - API: `https://api.trash.flaviof.com`
 and the website calls the API via configured base URL.
 
+If separate hostnames are used, configure backend/proxy CORS for the website origin.
+
 ---
 
 ## URL design and routing
@@ -93,6 +99,10 @@ and the website calls the API via configured base URL.
   - Optional: what this is, privacy, FAQ
 
 Design goal: town pages share a generic implementation, with town-specific content and capabilities coming from config.
+
+GitHub Pages note:
+- If using React Router browser history mode, deep links like `/towns/westford-ma` need fallback handling (`404.html` redirect strategy).
+- Alternatively, use hash routing to avoid deep-link 404s on Pages.
 
 ### Backend endpoints used by the site
 
@@ -130,7 +140,9 @@ Example schema (conceptual):
       hero_subtitle: "Subscribe once, stay up to date."
       badge: "Westford"
       theme:
-        gradient: "lavender-to-blue"
+        gradient: "teal-to-sky"
+      links:
+        official_routes_doc: "https://westfordma.gov/DocumentCenter/View/2949/Trash-and-Recycling-Routes-by-Street-Name-PDF"
     capabilities:
       explicit_bypass:
         enabled: true
@@ -176,7 +188,9 @@ Content goals:
 Top section:
 - Cute, inviting logo (SVG) with trash + recycling vibe.
 - Clear title and short explanation.
-- Subtle version footer: “Backend vX.Y.Z” pulled from `/version`.
+- Subtle metadata footer pulled from `/version`:
+  - `schema_version`
+  - DB `generated_at` timestamp
 
 Two main cards:
 1) “I know my pickup day and bin color”
@@ -189,22 +203,24 @@ Two main cards:
      - Secondary “Copy URL” button
      - Shows the resulting URL:
        - `https://.../town.ics?weekday=Thursday&color=BLUE&types=trash,recycling`
-   - Advanced options (collapsed):
-     - days ahead (number input with sensible min/max, default blank uses backend default)
-     - “Show debug link” that points to `/debug` with same params
+   - Advanced options (collapsed by default):
+     - days ahead (number input/select control with sensible min/max, default blank uses backend default)
+     - types selector UI (checkboxes/toggles), default both selected
+     - debug link (hidden by default, shown only when advanced troubleshooting is expanded)
 
 2) “I do not know my pickup info”
    - Inputs:
-     - Street (text with autocomplete)
-     - Number (numeric)
+     - Full address (single field, optional), OR
+     - Street (text with autocomplete) + Number (numeric)
    - Behavior:
-     - Call `/resolve?street=...&number=...` (or whatever the backend expects)
+     - Call `/resolve?address=...` when full address is used
+     - Call `/resolve?street=...&number=...` when street/number is used
      - If the backend returns a resolved match:
        - Show resolved weekday + color clearly
        - Provide the same subscribe + copy URL functionality using Mode B output
      - If the backend returns suggestions:
        - Present suggestions as a list of clickable options
-       - Clicking a suggestion should re-run resolve using that suggestion’s canonical street name (and same number) or directly use the returned resolved info, depending on backend response shape
+       - Current backend shape is `suggestions: string[]`; clicking a suggestion should re-run resolve with same house number
      - If no match:
        - Explain next steps
        - Offer to try a different spelling
@@ -213,6 +229,7 @@ Two main cards:
 Important UX detail:
 - Do not make users type “BLUE” and “GREEN”.
 - Use dropdowns and buttons with small color indicators.
+- Do not make users type `days` or `types`; use structured controls in Advanced.
 
 ### Subscription instructions
 
@@ -237,7 +254,7 @@ Implementation detail:
 Target vibe:
 - Soft, modern, approachable.
 - Glassy cards with blur.
-- Lavender to blue gradient background.
+- Theme from town config tokens (avoid hardcoding one palette).
 - Subtle noise texture (optional).
 - Rounded corners, gentle shadows.
 - Clear section hierarchy with whitespace.
@@ -291,6 +308,10 @@ Why:
 - Provide retry button.
 - In the footer, show status from `/healthz` when available.
 
+### Cross-origin failures (when website and API are split)
+- Detect likely CORS errors and show a clear operator-facing hint in console/docs.
+- Production docs must include required CORS headers and allowed origins.
+
 ### Backend schema changes
 - Parse `/version` response defensively.
 - The website should not require new fields to exist.
@@ -343,6 +364,7 @@ If using a custom domain, configure it in GitHub Pages settings and set appropri
 Notes:
 - The workflow must include the permissions required for Pages deployment.
 - The repository should document how to configure the custom domain and HTTPS.
+- If using SPA routes, include the Pages deep-link fallback strategy (`404.html` redirect) or hash routing.
 
 ---
 
@@ -362,15 +384,15 @@ Pros:
 Cons:
 - Requires an edge routing setup
 
-### Option 2: separate domains
+### Option 2: separate domains (fallback only)
 - Website: `https://trash.flaviof.com`
 - API: `https://api.trash.flaviof.com`
-Pros:
-- Simpler DNS and hosting separation
-Cons:
-- Website must handle CORS and display that API host in URLs, unless you add a redirect layer
+- Requires CORS configuration on API/proxy:
+  - `Access-Control-Allow-Origin: https://trash.flaviof.com`
+  - Allow `GET` and required headers
 
-The repo should document whichever option is chosen, with step-by-step instructions.
+Status:
+- Option 1 is selected for this project.
 
 ---
 
@@ -382,12 +404,14 @@ The repo should document whichever option is chosen, with step-by-step instructi
   - subscribe URL
   - copy button
   - optional debug URL
+- [ ] Generated subscription URLs are always Mode B (never address parameters)
 - [ ] Address resolution flow using `/resolve`:
   - handles success
   - handles suggestions
   - handles no match
-- [ ] Discreet backend version display using `/version`
+- [ ] Discreet backend metadata display using `/version` (`schema_version`, `generated_at`)
 - [ ] Beautiful, soft, glassy UI per aesthetic spec
+- [ ] CORS works for browser API calls when website/API are on different origins
 - [ ] Local dev and docker-compose preview
 - [ ] Tests (Vitest + Playwright)
 - [ ] GitHub Actions CI:
@@ -400,7 +424,7 @@ The repo should document whichever option is chosen, with step-by-step instructi
 
 ## Codex prompt (for implementing the website)
 
-You are Codex 5.3 working in an existing repository that already contains a Flask backend and a working production deployment of the API endpoints (`/town.ics`, `/resolve`, `/version`, etc). Your task is to add a static website into the same repo.
+You are Codex working in an existing repository that already contains a Flask backend and a working production deployment of the API endpoints (`/town.ics`, `/resolve`, `/version`, etc). Your task is to add a static website into the same repo.
 
 Goals:
 1) Create a `web/` directory containing a React + TypeScript + Vite + Tailwind site.
@@ -412,23 +436,25 @@ Goals:
    - Explicit bypass generator:
      - weekday dropdown
      - color dropdown
-     - types selection
+     - types selection (UI controls; hidden under Advanced by default)
+     - days control (UI control; hidden under Advanced by default)
      - outputs final ICS URL for subscription (Mode B)
    - Address resolver:
-     - input street + number
+     - input full `address` OR `street` + `number`
      - calls `/resolve` and handles:
        - resolved result -> show weekday/color and generate Mode B URL
        - suggestions -> render selectable suggestion list and re-resolve
        - no match -> friendly guidance
+     - generated subscription URL after resolution must remain Mode B (no address params)
    - Footer version:
-     - fetch `/version` and display “Backend v...” discreetly
+     - fetch `/version` and display schema + generated timestamp discreetly
 5) Make URLs configurable:
    - Do not hardcode production hostname
    - Use `VITE_API_BASE_URL` or town config `api.base_url`
 6) UI requirements:
    - Soft, modern, approachable
    - Glassy cards with blur
-   - Lavender to blue gradient background
+   - Theme colors from config tokens (no hardcoded palette)
    - Clean responsive layout
    - A small custom SVG logo with trash + recycling vibe
 7) Subscription instructions section:
@@ -455,11 +481,10 @@ Implementation notes:
   - builds Mode B URLs from weekday/color/types/days
   - builds `/debug` URL optionally
   - always URL-encodes parameters correctly
+  - never emits address/street params for subscription URLs
 - Suggestion handling:
-  - The backend already provides suggestions. You must read the Postman collection and/or backend code to determine the exact JSON shape.
-  - The UI should handle at least:
-    - `suggestions: string[]` style
-    - `suggestions: { street: string, ... }[]` style
+  - The backend currently returns `suggestions: string[]` on resolve misses.
+  - Keep suggestion parsing isolated so it can be extended later if response shape evolves.
   - Keep this logic isolated and tested.
 
 Definition of done:

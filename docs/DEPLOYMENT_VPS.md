@@ -1,6 +1,11 @@
 # Deployment on a VPS (Ubuntu 22.04, Docker)
 
-This guide covers a minimal, reliable setup to run the service in a Docker container on Ubuntu 22.04, expose it on port `8080`, and serve it publicly at:
+This guide covers a minimal, reliable setup to run the service in a Docker container on Ubuntu 22.04, expose it on port `8080`, and publish a single public hostname where:
+
+- website routes (`/`, `/towns/...`) are proxied to a website origin
+- API routes (`/town.ics`, `/resolve`, `/version`, `/healthz`, `/debug`, `/streets`) are proxied to the backend container
+
+Public API example:
 
 `https://trash.flaviof.com/town.ics`
 
@@ -185,9 +190,15 @@ curl -s http://127.0.0.1:8080/healthz
 ```
 
 
-## 8) Nginx reverse proxy
+## 8) Nginx reverse proxy (Option 1 path routing)
 
-Create a site config:
+Create a site config.
+
+This example keeps a single public hostname (`trash.flaviof.com`) while routing to separate upstream hostnames behind the scenes:
+- API upstream: local backend container (`http://127.0.0.1:8080`)
+- Website upstream: GitHub Pages origin (`https://flavio-fernandes.github.io/town-collection-cal/`)
+
+Adjust the GitHub Pages upstream host/path for your repo.
 
 ```bash
 cat <<'EOF' | sudo tee /etc/nginx/sites-available/trash.flaviof.com >/dev/null
@@ -195,11 +206,18 @@ server {
     listen 80;
     server_name trash.flaviof.com;
 
-    location / {
+    location ~ ^/(town\.ics|resolve|version|healthz|debug|streets)$ {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass https://flavio-fernandes.github.io/town-collection-cal/;
+        proxy_set_header Host flavio-fernandes.github.io;
+        proxy_ssl_server_name on;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
@@ -209,6 +227,8 @@ sudo ln -sf /etc/nginx/sites-available/trash.flaviof.com /etc/nginx/sites-enable
 sudo nginx -t
 sudo systemctl reload nginx
 ```
+
+You can also copy the same template from `docs/nginx_site_option1.conf`.
 
 
 ## 9) TLS certificates (Let’s Encrypt)
@@ -220,9 +240,10 @@ sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d trash.flaviof.com
 ```
 
-After this, your URL should work:
+After this, these URLs should work:
 
 ```
+https://trash.flaviof.com/
 https://trash.flaviof.com/town.ics
 ```
 
@@ -245,12 +266,15 @@ You can also copy these settings from `docs/nginx_http_context.conf`.
 After Certbot has created the HTTPS server block, add these lines inside the `server { ... }` block that listens on `443` in `/etc/nginx/sites-available/trash.flaviof.com`:
 
 ```nginx
-limit_req zone=ics_rate burst=20 nodelay;
-limit_conn addr 20;
 add_header X-Content-Type-Options nosniff always;
 add_header X-Frame-Options DENY always;
 add_header Referrer-Policy no-referrer always;
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+location ~ ^/(town\.ics|resolve|version|healthz|debug|streets)$ {
+    limit_req zone=ics_rate burst=20 nodelay;
+    limit_conn addr 20;
+}
 ```
 
 You can copy these server-block directives from `docs/nginx_server_security.conf`.

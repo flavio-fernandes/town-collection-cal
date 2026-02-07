@@ -8,6 +8,7 @@ from typing import Any
 
 from flask import Flask, jsonify, request
 
+from town_collection_cal import __version__ as service_version
 from town_collection_cal.common.address import parse_address
 from town_collection_cal.common.db_model import Database
 from town_collection_cal.common.ics import IcsEvent, build_ics
@@ -57,6 +58,7 @@ def create_app() -> Flask:
         db = db_loader.get_db()
         return jsonify(
             {
+                "service_version": service_version,
                 "schema_version": db.schema_version,
                 "meta": db.meta.model_dump(),
             }
