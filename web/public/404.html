@@ -10,7 +10,11 @@
       (function () {
         var path = window.location.pathname || "/";
         var query = window.location.search ? window.location.search.slice(1) : "";
-        var destination = "/?p=" + encodeURIComponent(path) + (query ? "&q=" + encodeURIComponent(query) : "");
+        var isGithubIoHost = /\.github\.io$/i.test(window.location.hostname);
+        var segments = path.split("/").filter(Boolean);
+        var basePath = isGithubIoHost && segments.length > 0 ? "/" + segments[0] : "";
+        var destination =
+          basePath + "/?p=" + encodeURIComponent(path) + (query ? "&q=" + encodeURIComponent(query) : "");
         window.location.replace(destination);
       })();
     </script>

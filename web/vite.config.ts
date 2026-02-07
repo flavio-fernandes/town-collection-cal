@@ -14,8 +14,15 @@ const apiPaths = [
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const proxyTarget = env.VITE_DEV_PROXY_TARGET;
+  const configuredBasePath = env.VITE_BASE_PATH?.trim();
+  const base = configuredBasePath
+    ? configuredBasePath.endsWith("/")
+      ? configuredBasePath
+      : `${configuredBasePath}/`
+    : "/";
 
   return {
+    base,
     plugins: [react()],
     server: {
       host: "0.0.0.0",
