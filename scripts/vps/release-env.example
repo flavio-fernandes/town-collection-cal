@@ -1,0 +1,23 @@
+# Shared release config for VPS deploy/update scripts.
+# Copy to: /opt/town-collection-cal/.env.release
+
+# GHCR image selection
+IMAGE_REPO=ghcr.io/flavio-fernandes/town-collection-cal
+IMAGE_TAG=latest
+
+# Container/runtime settings
+CONTAINER_NAME=town-collection-cal
+SERVICE_NAME=town-collection-cal.service
+PORT_MAP=8080:5000
+
+# Host paths
+HOST_ROOT=/opt/town-collection-cal
+HOST_TOWNS_DIR=/opt/town-collection-cal/towns
+HOST_DATA_DIR=/opt/town-collection-cal/data
+
+# In-container app paths/env
+TOWN_ID=westford_ma
+TOWN_CONFIG_PATH=/app/towns/westford_ma/town.yaml
+DB_PATH=/app/data/generated/westford_ma.json
+OUT_PATH=/app/data/generated/westford_ma.json
+CACHE_DIR=/app/data/cache

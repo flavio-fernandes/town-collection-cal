@@ -11,6 +11,7 @@ Public API example:
 
 It includes:
 - Docker image pull and container setup
+- Single env file for release/image tag pinning
 - A `systemd` service with exponential backoff (1 minute doubling up to 15 minutes)
 - Nginx reverse proxy + TLS (Let’s Encrypt)
 - Required DNS records
@@ -42,11 +43,31 @@ cd /opt/town-collection-cal
 mkdir -p data/cache data/generated
 ```
 
+## 2.5) Create shared release config (recommended)
+
+This is the single source of truth for image tag/release pinning.
+
+```bash
+cp scripts/vps/release-env.example .env.release
+$EDITOR .env.release
+```
+
+Set at least:
+- `IMAGE_TAG=...` (`latest` or a release tag like `v0.2.0`)
+
+You can inspect what will be used:
+```bash
+source .env.release
+echo "${IMAGE_REPO}:${IMAGE_TAG}"
+```
+
 
 ## 3) Pull the Docker image from GHCR
 
 ```bash
-docker pull ghcr.io/flavio-fernandes/town-collection-cal:latest
+source /opt/town-collection-cal/.env.release
+IMAGE="${IMAGE_REPO}:${IMAGE_TAG}"
+docker pull "$IMAGE"
 ```
 
 The published image is multi-arch (`linux/amd64` and `linux/arm64`), so it works on ARM-based VPS hosts.
@@ -57,6 +78,8 @@ The published image is multi-arch (`linux/amd64` and `linux/arm64`), so it works
 Run the updater inside a one-off container so you don’t need Python on the host:
 
 ```bash
+source /opt/town-collection-cal/.env.release
+IMAGE="${IMAGE_REPO}:${IMAGE_TAG}"
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   -e TOWN_ID=westford_ma \
@@ -65,7 +88,7 @@ docker run --rm \
   -e CACHE_DIR=/app/data/cache \
   -v /opt/town-collection-cal/towns:/app/towns \
   -v /opt/town-collection-cal/data:/app/data \
-  ghcr.io/flavio-fernandes/town-collection-cal:latest \
+  "$IMAGE" \
   python -m town_collection_cal.updater build-db \
     --town /app/towns/westford_ma/town.yaml \
     --out /app/data/generated/westford_ma.json \
@@ -86,6 +109,8 @@ by your user and rerun the command with `--user "$(id -u):$(id -g)"`.
 ## 5) Create the container (not started yet)
 
 ```bash
+source /opt/town-collection-cal/.env.release
+IMAGE="${IMAGE_REPO}:${IMAGE_TAG}"
 docker create \
   --name town-collection-cal \
   -p 8080:5000 \
@@ -104,7 +129,7 @@ docker create \
   --cpus 1 \
   --log-opt max-size=10m \
   --log-opt max-file=5 \
-  ghcr.io/flavio-fernandes/town-collection-cal:latest
+  "$IMAGE"
 ```
 
 
@@ -188,6 +213,21 @@ Verify locally:
 ```bash
 curl -s http://127.0.0.1:8080/healthz
 ```
+
+## 7.5) Release updates (tag bump in one place)
+
+For ongoing updates, change only `IMAGE_TAG` in `/opt/town-collection-cal/.env.release`, then run:
+
+```bash
+cd /opt/town-collection-cal
+./scripts/vps/deploy_release.sh
+```
+
+This script:
+- pulls the configured image
+- rebuilds DB with the same image tag
+- recreates the service container with the same image tag
+- restarts `town-collection-cal.service`
 
 
 ## 8) Nginx reverse proxy (Option 1 path routing)
@@ -315,24 +355,13 @@ Wants=network-online.target
 Type=oneshot
 User=ubuntu
 Group=ubuntu
-ExecStart=/usr/bin/docker run --rm \
-  -e TOWN_ID=westford_ma \
-  -e TOWN_CONFIG_PATH=/app/towns/westford_ma/town.yaml \
-  -e OUT_PATH=/app/data/generated/westford_ma.json \
-  -e CACHE_DIR=/app/data/cache \
-  -v /opt/town-collection-cal/towns:/app/towns \
-  -v /opt/town-collection-cal/data:/app/data \
-  --user 1001:1001 \
-  ghcr.io/flavio-fernandes/town-collection-cal:latest \
-  python -m town_collection_cal.updater build-db \
-    --town /app/towns/westford_ma/town.yaml \
-    --out /app/data/generated/westford_ma.json \
-    --cache-dir /app/data/cache
+WorkingDirectory=/opt/town-collection-cal
+ExecStart=/opt/town-collection-cal/scripts/vps/run_db_update.sh
 EOF
 ```
 
-Replace `User=`, `Group=`, and `--user` with your host user and its UID/GID.
-Check with `id -u` and `id -g`.
+Replace `User=` and `Group=` with your host user.
+The updater script reads image tag and paths from `/opt/town-collection-cal/.env.release`.
 Ensure `/opt/town-collection-cal/data` is owned by that user:
 
 ```bash
