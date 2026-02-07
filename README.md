@@ -162,6 +162,19 @@ ruff check .
 pytest
 ```
 
+Unified workflow via `make` (recommended):
+```bash
+make bootstrap-py
+make bootstrap-web
+make check
+```
+
+Other useful targets:
+- `make test-py`
+- `make test-web`
+- `make build-web`
+- `make help`
+
 ## Sanity Check
 ```bash
 make sanity
