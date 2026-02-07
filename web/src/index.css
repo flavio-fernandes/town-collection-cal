@@ -26,3 +26,28 @@ body {
 ::selection {
   background: rgba(20, 184, 166, 0.25);
 }
+
+button,
+a.pressable {
+  transition:
+    transform 110ms ease,
+    filter 140ms ease,
+    box-shadow 140ms ease;
+}
+
+button:hover,
+a.pressable:hover {
+  filter: brightness(1.03);
+}
+
+button:active,
+a.pressable:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  a.pressable {
+    transition: none;
+  }
+}

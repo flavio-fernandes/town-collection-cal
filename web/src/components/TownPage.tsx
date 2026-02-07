@@ -13,6 +13,7 @@ interface TownPageProps {
 const ALL_TYPES: CollectionType[] = ["trash", "recycling"];
 
 export function TownPage({ town }: TownPageProps) {
+  const heroIllustration = "/illustrations/bins-wave.svg";
   const [weekday, setWeekday] = useState<Weekday>(town.capabilities.explicitBypass.weekdayValues[0]);
   const [color, setColor] = useState<RecyclingColor>(town.capabilities.explicitBypass.colorValues[0]);
   const [selectedTypes, setSelectedTypes] = useState<CollectionType[]>([...ALL_TYPES]);
@@ -192,13 +193,11 @@ export function TownPage({ town }: TownPageProps) {
             <p className="mt-3 max-w-2xl text-sm text-slate-700">{town.ui.heroSubtitle}</p>
           </div>
 
-          <svg viewBox="0 0 120 120" className="h-20 w-20 shrink-0" aria-hidden>
-            <rect x="20" y="24" width="30" height="62" rx="8" fill="#0f766e" />
-            <rect x="70" y="24" width="30" height="62" rx="8" fill="#0284c7" />
-            <path d="M34 18h2m7 0h2m30 0h2m7 0h2" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" />
-            <path d="M26 52h18m36 0h18" stroke="#ecfeff" strokeWidth="4" strokeLinecap="round" />
-            <path d="M52 93l8 10 8-10" stroke="#0f172a" strokeWidth="4" fill="none" strokeLinecap="round" />
-          </svg>
+          <img
+            src={heroIllustration}
+            className="h-24 w-24 shrink-0"
+            alt="Cartoon-style trash and recycling bins"
+          />
         </div>
 
         <p className="mt-4 text-xs text-slate-600">{version}</p>
@@ -245,7 +244,7 @@ export function TownPage({ town }: TownPageProps) {
 
           <button
             type="button"
-            className="mt-4 text-sm font-medium text-teal-800 underline decoration-dotted underline-offset-4"
+            className="mt-4 block w-fit text-sm font-medium text-teal-800 underline decoration-dotted underline-offset-4"
             onClick={() => setShowAdvanced((prev) => !prev)}
           >
             {showAdvanced ? "Hide" : "Show"} advanced options
@@ -393,7 +392,7 @@ export function TownPage({ town }: TownPageProps) {
 
               <div className="mt-4 flex flex-wrap gap-3">
                 <a
-                  className="rounded-xl bg-teal-800 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-900"
+                  className="pressable rounded-xl bg-teal-800 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-900"
                   href={icsUrl}
                   target="_blank"
                   rel="noreferrer"
@@ -409,7 +408,7 @@ export function TownPage({ town }: TownPageProps) {
                 </button>
                 {showAdvanced && showDebugLink && debugUrl && (
                   <a
-                    className="rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700"
+                    className="pressable rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700"
                     href={debugUrl}
                     target="_blank"
                     rel="noreferrer"
