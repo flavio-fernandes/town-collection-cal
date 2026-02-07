@@ -11,6 +11,27 @@ interface TownPageProps {
 }
 
 const ALL_TYPES: CollectionType[] = ["trash", "recycling"];
+const MIN_DAYS_AHEAD = 1;
+const MAX_DAYS_AHEAD = 365;
+
+function parseDaysAhead(raw: string): { days?: number; error?: string } {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return {};
+  }
+  if (!/^\d+$/.test(trimmed)) {
+    return {
+      error: `Days ahead must be a whole number between ${MIN_DAYS_AHEAD} and ${MAX_DAYS_AHEAD}.`,
+    };
+  }
+  const days = Number(trimmed);
+  if (days < MIN_DAYS_AHEAD || days > MAX_DAYS_AHEAD) {
+    return {
+      error: `Days ahead must be between ${MIN_DAYS_AHEAD} and ${MAX_DAYS_AHEAD}.`,
+    };
+  }
+  return { days };
+}
 
 export function TownPage({ town }: TownPageProps) {
   const heroIllustration = "/illustrations/bins-wave.svg";
@@ -36,6 +57,8 @@ export function TownPage({ town }: TownPageProps) {
   const [loading, setLoading] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "done">("idle");
 
+  const daysValidation = useMemo(() => parseDaysAhead(daysInput), [daysInput]);
+
   useEffect(() => {
     void (async () => {
       try {
@@ -49,14 +72,13 @@ export function TownPage({ town }: TownPageProps) {
   }, [town]);
 
   const modeBSelection = useMemo<ModeBSelection>(() => {
-    const parsedDays = Number(daysInput);
     return {
       weekday,
       color,
       types: selectedTypes.length ? selectedTypes : ALL_TYPES,
-      days: Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : undefined,
+      days: daysValidation.days,
     };
-  }, [color, daysInput, selectedTypes, weekday]);
+  }, [color, daysValidation.days, selectedTypes, weekday]);
 
   async function runPreview(selection: ModeBSelection, summary?: string) {
     setLoading(true);
@@ -83,6 +105,10 @@ export function TownPage({ town }: TownPageProps) {
 
   async function handleKnownSubmit(event: FormEvent) {
     event.preventDefault();
+    if (daysValidation.error) {
+      setError(daysValidation.error);
+      return;
+    }
     setResolvedSummary("");
     await runPreview(modeBSelection);
   }
@@ -97,6 +123,10 @@ export function TownPage({ town }: TownPageProps) {
   }
 
   async function performResolve(input: { address?: string; street?: string; number?: string }) {
+    if (daysValidation.error) {
+      setError(daysValidation.error);
+      return;
+    }
     setLoading(true);
     setError("");
     setSuggestions([]);
@@ -277,15 +307,20 @@ export function TownPage({ town }: TownPageProps) {
                 Days ahead (optional)
                 <input
                   type="number"
-                  min={1}
+                  min={MIN_DAYS_AHEAD}
+                  max={MAX_DAYS_AHEAD}
                   step={1}
                   inputMode="numeric"
+                  aria-invalid={Boolean(daysValidation.error)}
                   value={daysInput}
                   onChange={(event) => setDaysInput(event.target.value)}
                   placeholder="Use backend default"
                   className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2"
                 />
               </label>
+              {daysValidation.error && (
+                <p className="mt-2 text-xs text-rose-700">{daysValidation.error}</p>
+              )}
 
               <label className="mt-4 inline-flex items-center gap-2 text-sm text-slate-700">
                 <input
