@@ -25,7 +25,14 @@ npm run preview
 
 ```bash
 npm run test
+npm run test:e2e:install
 npm run test:e2e
+```
+
+If Playwright browsers are not installed locally, use the repo-level Docker fallback:
+
+```bash
+make test-web-e2e
 ```
 
 ## Enable GitHub Pages
