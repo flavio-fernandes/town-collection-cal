@@ -15,9 +15,11 @@ WEB_DIR ?= web
 NODE_IMAGE ?= node:20-bookworm
 PLAYWRIGHT_VERSION ?= $(shell awk 'f && /"version"/ {gsub(/[",]/, "", $$2); print $$2; exit} /"node_modules\/@playwright\/test"/ {f=1}' $(WEB_DIR)/package-lock.json)
 PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v$(PLAYWRIGHT_VERSION)-jammy
+HOST_UID ?= $(shell id -u)
+HOST_GID ?= $(shell id -g)
 
-WEB_DOCKER_RUN = docker run --rm -t --user "$$(id -u):$$(id -g)" -v "$$(pwd)/$(WEB_DIR):/app" -v /app/node_modules -w /app $(NODE_IMAGE)
-WEB_PLAYWRIGHT_DOCKER_RUN = docker run --rm -t --user "$$(id -u):$$(id -g)" --ipc=host -v "$$(pwd)/$(WEB_DIR):/app" -v /app/node_modules -w /app $(PLAYWRIGHT_IMAGE)
+WEB_DOCKER_RUN = docker run --rm -t --user "$(HOST_UID):$(HOST_GID)" -e NPM_CONFIG_CACHE=/tmp/.npm -v "$$(pwd)/$(WEB_DIR):/app" --tmpfs /app/node_modules:uid=$(HOST_UID),gid=$(HOST_GID),mode=0755,exec -w /app $(NODE_IMAGE)
+WEB_PLAYWRIGHT_DOCKER_RUN = docker run --rm -t --user "$(HOST_UID):$(HOST_GID)" --ipc=host -e NPM_CONFIG_CACHE=/tmp/.npm -v "$$(pwd)/$(WEB_DIR):/app" --tmpfs /app/node_modules:uid=$(HOST_UID),gid=$(HOST_GID),mode=0755,exec -w /app $(PLAYWRIGHT_IMAGE)
 
 TOWN_ID ?= westford_ma
 TOWN_CONFIG_PATH ?= towns/$(TOWN_ID)/town.yaml
