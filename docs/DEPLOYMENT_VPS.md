@@ -230,6 +230,10 @@ This script:
 - rebuilds DB with the same image tag
 - recreates the service container with the same image tag
 - restarts `town-collection-cal.service`
+- reloads systemd units and restarts `town-collection-cal-update.timer`
+
+`deploy_release.sh` requires both `town-collection-cal-update.service` and
+`town-collection-cal-update.timer` to exist.
 
 Note:
 - `CORS_ALLOWED_ORIGINS` from `.env.release` is passed into the container.
@@ -355,7 +359,7 @@ TTL: 300 (or your preference)
 ```
 
 
-## Optional: Rebuild DB daily with systemd timer
+## 11) Required: Rebuild DB daily with systemd timer
 
 Create a one-shot service that refreshes the DB:
 
@@ -424,9 +428,4 @@ journalctl -u town-collection-cal.service -n 200 --no-pager
 Nginx:
 ```bash
 journalctl -u nginx -n 200 --no-pager
-```
-
-If you chose cron instead of the systemd timer, you can inspect cron logs with:
-```bash
-journalctl -u cron -n 200 --no-pager | rg town-collection-cal
 ```

@@ -17,6 +17,8 @@ IMAGE="${IMAGE_REPO}:${IMAGE_TAG}"
 
 CONTAINER_NAME="${CONTAINER_NAME:-town-collection-cal}"
 SERVICE_NAME="${SERVICE_NAME:-town-collection-cal.service}"
+DB_UPDATE_SERVICE_NAME="${DB_UPDATE_SERVICE_NAME:-town-collection-cal-update.service}"
+DB_UPDATE_TIMER_NAME="${DB_UPDATE_TIMER_NAME:-town-collection-cal-update.timer}"
 PORT_MAP="${PORT_MAP:-8080:5000}"
 
 HOST_TOWNS_DIR="${HOST_TOWNS_DIR:-/opt/town-collection-cal/towns}"
@@ -70,5 +72,20 @@ docker create \
 echo "Starting systemd service: $SERVICE_NAME"
 sudo systemctl start "$SERVICE_NAME"
 sudo systemctl status "$SERVICE_NAME" --no-pager --lines=10
+
+if ! sudo systemctl list-unit-files --type=service --no-legend "$DB_UPDATE_SERVICE_NAME" | grep -q "^${DB_UPDATE_SERVICE_NAME}[[:space:]]"; then
+  echo "error: required systemd unit not found: $DB_UPDATE_SERVICE_NAME" >&2
+  exit 1
+fi
+
+if ! sudo systemctl list-unit-files --type=timer --no-legend "$DB_UPDATE_TIMER_NAME" | grep -q "^${DB_UPDATE_TIMER_NAME}[[:space:]]"; then
+  echo "error: required systemd unit not found: $DB_UPDATE_TIMER_NAME" >&2
+  exit 1
+fi
+
+echo "Reloading and restarting DB update timer: $DB_UPDATE_TIMER_NAME"
+sudo systemctl daemon-reload
+sudo systemctl restart "$DB_UPDATE_TIMER_NAME"
+sudo systemctl status "$DB_UPDATE_TIMER_NAME" --no-pager --lines=10
 
 echo "Done. Running image: $IMAGE"
