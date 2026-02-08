@@ -34,7 +34,7 @@ function parseDaysAhead(raw: string): { days?: number; error?: string } {
 }
 
 export function TownPage({ town }: TownPageProps) {
-  const heroIllustration = "/illustrations/bins-wave.svg";
+  const heroIllustration = `${import.meta.env.BASE_URL}illustrations/bins-wave.svg`;
   const [weekday, setWeekday] = useState<Weekday>(town.capabilities.explicitBypass.weekdayValues[0]);
   const [color, setColor] = useState<RecyclingColor>(town.capabilities.explicitBypass.colorValues[0]);
   const [selectedTypes, setSelectedTypes] = useState<CollectionType[]>([...ALL_TYPES]);
