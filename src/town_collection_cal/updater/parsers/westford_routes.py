@@ -13,8 +13,10 @@ from town_collection_cal.updater.parsers.types import RoutesParseResult
 DAY_PATTERN = re.compile(r"\b(Monday|Tuesday|Wednesday|Thursday|Friday)\b", re.IGNORECASE)
 COLOR_PATTERN = re.compile(r"\b(BLUE|GREEN|TBA)\b", re.IGNORECASE)
 PARITY_PATTERN = re.compile(r"\b(ODD|EVEN)\b", re.IGNORECASE)
-RANGE_PATTERN = re.compile(r"\b(\d{1,5})\s*-\s*(\d{1,5})\b")
-OPEN_ENDED_RANGE_PATTERN = re.compile(r"\b#?\s*(\d{1,5})\s*-\s*end\b", re.IGNORECASE)
+_DASH = r"[-\u2010\u2011\u2012\u2013\u2014\u2015]"
+RANGE_PATTERN = re.compile(rf"\b#?\s*(\d{{1,5}})\s*{_DASH}\s*(\d{{1,5}})\b")
+OPEN_ENDED_RANGE_PATTERN = re.compile(rf"\b#?\s*(\d{{1,5}})\s*{_DASH}\s*end\b", re.IGNORECASE)
+PAREN_NOTE_PATTERN = re.compile(r"\([^)]*\)")
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +140,7 @@ def _extract_parity(line: str) -> str | None:
 def _clean_street(line: str) -> str:
     street = line
     for pattern in (
+        PAREN_NOTE_PATTERN,
         DAY_PATTERN,
         COLOR_PATTERN,
         PARITY_PATTERN,

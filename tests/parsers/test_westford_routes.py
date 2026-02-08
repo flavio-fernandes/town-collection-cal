@@ -17,6 +17,7 @@ def test_parse_routes_fixture() -> None:
     assert "North Main St" in streets
     assert "Brookside Rd" in streets
     assert "Carlisle Rd" in streets
+    assert "Dunstable Rd" in streets
     assert "No Main St" not in streets
     assert "#20 - end" not in streets
     assert "#91 - end" not in streets
@@ -44,6 +45,12 @@ def test_parse_routes_fixture() -> None:
     assert (1, 87) in carlisle_ranges
     assert (91, None) in carlisle_ranges
 
+    dunstable = [r for r in result.routes if r.street == "Dunstable Rd"]
+    assert len(dunstable) == 2
+    dunstable_ranges = {(c.range_min, c.range_max) for r in dunstable for c in r.constraints}
+    assert (2, 29) in dunstable_ranges
+    assert (38, 170) in dunstable_ranges
+
     north_main = [r for r in result.routes if r.street == "North Main St"]
     assert len(north_main) == 1
     assert north_main[0].weekday == "Tuesday"
@@ -56,3 +63,25 @@ def test_parse_routes_pdf_if_available() -> None:
         pytest.skip("routes.pdf not cached")
     result = parse_routes(pdf_path, "local://routes.pdf")
     assert result.routes
+
+
+def test_parse_routes_handles_unicode_dash_ranges(tmp_path: Path) -> None:
+    fixture = tmp_path / "unicode_dash_routes.txt"
+    fixture.write_text(
+        "\n".join(
+            [
+                "Dunstable Rd",
+                "#2 \u2013 29 (Depot St - Rt 40) Thursday Green",
+                "#38 \u2013 170 (Rt 40 - Tyngsboro line) Thursday Blue",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = parse_routes(fixture, "fixture://unicode-dash-routes")
+    assert not result.errors
+    dunstable = [r for r in result.routes if r.street == "Dunstable Rd"]
+    assert len(dunstable) == 2
+    dunstable_ranges = {(c.range_min, c.range_max) for r in dunstable for c in r.constraints}
+    assert (2, 29) in dunstable_ranges
+    assert (38, 170) in dunstable_ranges
