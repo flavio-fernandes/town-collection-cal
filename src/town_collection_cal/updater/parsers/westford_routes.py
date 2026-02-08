@@ -14,6 +14,7 @@ DAY_PATTERN = re.compile(r"\b(Monday|Tuesday|Wednesday|Thursday|Friday)\b", re.I
 COLOR_PATTERN = re.compile(r"\b(BLUE|GREEN|TBA)\b", re.IGNORECASE)
 PARITY_PATTERN = re.compile(r"\b(ODD|EVEN)\b", re.IGNORECASE)
 RANGE_PATTERN = re.compile(r"\b(\d{1,5})\s*-\s*(\d{1,5})\b")
+OPEN_ENDED_RANGE_PATTERN = re.compile(r"\b#?\s*(\d{1,5})\s*-\s*end\b", re.IGNORECASE)
 
 logger = logging.getLogger(__name__)
 
@@ -119,9 +120,14 @@ def parse_routes(path: str | Path, url: str) -> RoutesParseResult:
 
 def _extract_range(line: str) -> tuple[int | None, int | None]:
     range_match = RANGE_PATTERN.search(line)
-    if not range_match:
-        return None, None
-    return int(range_match.group(1)), int(range_match.group(2))
+    if range_match:
+        return int(range_match.group(1)), int(range_match.group(2))
+
+    open_ended_match = OPEN_ENDED_RANGE_PATTERN.search(line)
+    if open_ended_match:
+        return int(open_ended_match.group(1)), None
+
+    return None, None
 
 
 def _extract_parity(line: str) -> str | None:
@@ -131,7 +137,13 @@ def _extract_parity(line: str) -> str | None:
 
 def _clean_street(line: str) -> str:
     street = line
-    for pattern in (DAY_PATTERN, COLOR_PATTERN, PARITY_PATTERN, RANGE_PATTERN):
+    for pattern in (
+        DAY_PATTERN,
+        COLOR_PATTERN,
+        PARITY_PATTERN,
+        RANGE_PATTERN,
+        OPEN_ENDED_RANGE_PATTERN,
+    ):
         street = pattern.sub(" ", street)
     street = re.sub(r"\s+", " ", street).strip(" -")
     street = street.replace(".", "")

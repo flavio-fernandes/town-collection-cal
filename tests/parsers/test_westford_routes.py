@@ -15,7 +15,11 @@ def test_parse_routes_fixture() -> None:
     assert "Main St" in streets
     assert "Littleton Rd" in streets
     assert "North Main St" in streets
+    assert "Brookside Rd" in streets
+    assert "Carlisle Rd" in streets
     assert "No Main St" not in streets
+    assert "#20 - end" not in streets
+    assert "#91 - end" not in streets
 
     main_entries = [r for r in result.routes if r.street == "Main St"]
     assert len(main_entries) == 2
@@ -27,6 +31,18 @@ def test_parse_routes_fixture() -> None:
     assert len(littleton) == 1
     assert littleton[0].weekday == "Tuesday"
     assert littleton[0].recycling_color == "BLUE"
+
+    brookside = [r for r in result.routes if r.street == "Brookside Rd"]
+    assert len(brookside) == 2
+    brookside_ranges = {(c.range_min, c.range_max) for r in brookside for c in r.constraints}
+    assert (1, 12) in brookside_ranges
+    assert (20, None) in brookside_ranges
+
+    carlisle = [r for r in result.routes if r.street == "Carlisle Rd"]
+    assert len(carlisle) == 2
+    carlisle_ranges = {(c.range_min, c.range_max) for r in carlisle for c in r.constraints}
+    assert (1, 87) in carlisle_ranges
+    assert (91, None) in carlisle_ranges
 
     north_main = [r for r in result.routes if r.street == "North Main St"]
     assert len(north_main) == 1
