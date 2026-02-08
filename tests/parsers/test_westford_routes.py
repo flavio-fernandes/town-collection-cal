@@ -18,6 +18,7 @@ def test_parse_routes_fixture() -> None:
     assert "Brookside Rd" in streets
     assert "Carlisle Rd" in streets
     assert "Dunstable Rd" in streets
+    assert "Forrest Rd" in streets
     assert "No Main St" not in streets
     assert "#20 - end" not in streets
     assert "#91 - end" not in streets
@@ -50,6 +51,12 @@ def test_parse_routes_fixture() -> None:
     dunstable_ranges = {(c.range_min, c.range_max) for r in dunstable for c in r.constraints}
     assert (2, 29) in dunstable_ranges
     assert (38, 170) in dunstable_ranges
+
+    forrest = [r for r in result.routes if r.street == "Forrest Rd"]
+    assert len(forrest) == 2
+    forrest_ranges = {(c.range_min, c.range_max) for r in forrest for c in r.constraints}
+    assert (2, 61) in forrest_ranges
+    assert (65, 115) in forrest_ranges
 
     north_main = [r for r in result.routes if r.street == "North Main St"]
     assert len(north_main) == 1
