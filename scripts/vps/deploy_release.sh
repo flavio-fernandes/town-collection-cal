@@ -26,6 +26,7 @@ TOWN_ID="${TOWN_ID:-westford_ma}"
 TOWN_CONFIG_PATH="${TOWN_CONFIG_PATH:-/app/towns/westford_ma/town.yaml}"
 DB_PATH="${DB_PATH:-/app/data/generated/westford_ma.json}"
 CACHE_DIR="${CACHE_DIR:-/app/data/cache}"
+CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS:-}"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "error: docker is required" >&2
@@ -51,6 +52,7 @@ docker create \
   -e TOWN_ID="$TOWN_ID" \
   -e TOWN_CONFIG_PATH="$TOWN_CONFIG_PATH" \
   -e DB_PATH="$DB_PATH" \
+  -e CORS_ALLOWED_ORIGINS="$CORS_ALLOWED_ORIGINS" \
   -v "$HOST_TOWNS_DIR:/app/towns:ro" \
   -v "$HOST_DATA_DIR:/app/data" \
   --read-only \

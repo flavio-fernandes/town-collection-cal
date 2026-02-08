@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 
 from town_collection_cal import __version__ as service_version
 from town_collection_cal.common.address import parse_address
@@ -48,6 +48,30 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.config["TOWN_CONFIG"] = config
     app.config["DB_LOADER"] = db_loader
+    app.config["CORS_ALLOWED_ORIGINS"] = _cors_allowed_origins_from_env()
+    logger.info("CORS allowed origins: %s", sorted(app.config["CORS_ALLOWED_ORIGINS"]))
+
+    @app.after_request
+    def add_cors_headers(response: Response) -> Response:
+        origin = request.headers.get("Origin")
+        if not origin:
+            return response
+
+        normalized_origin = origin.rstrip("/")
+        allowed_origins = app.config["CORS_ALLOWED_ORIGINS"]
+        allow_any = "*" in allowed_origins
+        origin_allowed = normalized_origin in allowed_origins
+        if not (allow_any or origin_allowed):
+            return response
+
+        response.headers["Access-Control-Allow-Origin"] = (
+            "*" if allow_any else normalized_origin
+        )
+        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Accept, Content-Type"
+        if not allow_any:
+            _append_vary_header(response, "Origin")
+        return response
 
     @app.get("/healthz")
     def healthz() -> Any:
@@ -295,6 +319,25 @@ def _parse_types() -> set[str]:
 
 def _get_config() -> Any:
     return current_app().config["TOWN_CONFIG"]
+
+
+def _cors_allowed_origins_from_env() -> set[str]:
+    raw = (
+        os.getenv("CORS_ALLOWED_ORIGINS")
+        or os.getenv("TCC_CORS_ALLOWED_ORIGINS")
+        or ""
+    )
+    return {item.strip().rstrip("/") for item in raw.split(",") if item.strip()}
+
+
+def _append_vary_header(response: Response, value: str) -> None:
+    existing = response.headers.get("Vary")
+    if not existing:
+        response.headers["Vary"] = value
+        return
+    values = {part.strip() for part in existing.split(",") if part.strip()}
+    values.add(value)
+    response.headers["Vary"] = ", ".join(sorted(values))
 
 
 def current_app() -> Flask:

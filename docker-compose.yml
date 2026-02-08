@@ -34,6 +34,7 @@ services:
       TOWN_ID: westford_ma
       TOWN_CONFIG_PATH: /app/towns/westford_ma/town.yaml
       DB_PATH: /app/data/generated/westford_ma.json
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       FLASK_APP: town_collection_cal.service.app:create_app
     volumes:
       - ./src:/app/src

@@ -49,6 +49,16 @@ Recommended checks:
 - If using a custom domain for direct Pages access, configure it in `Settings` -> `Pages`.
 
 For Option 1 routing in this project, Nginx proxies `/` to the default Pages origin, so a custom Pages domain is optional.
+The Pages workflow builds with:
+- `VITE_BASE_PATH=/${repo-name}/`
+- `VITE_API_BASE_URL=${{ vars.WEB_API_BASE_URL || 'https://trash.flaviof.com' }}`
+
+So direct access from `https://flavio-fernandes.github.io/town-collection-cal/` still
+calls the API at `trash.flaviof.com` by default.
+
+To allow those cross-origin browser calls, backend runtime must include:
+
+`CORS_ALLOWED_ORIGINS=https://flavio-fernandes.github.io,https://trash.flaviof.com`
 
 ## Key behavior
 

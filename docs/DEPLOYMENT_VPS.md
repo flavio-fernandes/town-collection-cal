@@ -54,6 +54,7 @@ $EDITOR .env.release
 
 Set at least:
 - `IMAGE_TAG=...` (`latest` or a release tag like `v0.2.0`)
+- `CORS_ALLOWED_ORIGINS=https://flavio-fernandes.github.io,https://trash.flaviof.com`
 
 You can inspect what will be used:
 ```bash
@@ -117,6 +118,7 @@ docker create \
   -e TOWN_ID=westford_ma \
   -e TOWN_CONFIG_PATH=/app/towns/westford_ma/town.yaml \
   -e DB_PATH=/app/data/generated/westford_ma.json \
+  -e CORS_ALLOWED_ORIGINS="https://flavio-fernandes.github.io,https://trash.flaviof.com" \
   -v /opt/town-collection-cal/towns:/app/towns:ro \
   -v /opt/town-collection-cal/data:/app/data \
   --read-only \
@@ -229,6 +231,11 @@ This script:
 - recreates the service container with the same image tag
 - restarts `town-collection-cal.service`
 
+Note:
+- `CORS_ALLOWED_ORIGINS` from `.env.release` is passed into the container.
+- Keep `https://flavio-fernandes.github.io` in this list if you want direct GitHub Pages
+  URL access to work for API-backed actions.
+
 
 ## 8) Nginx reverse proxy (Option 1 path routing)
 
@@ -254,11 +261,19 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    location / {
-        proxy_pass https://flavio-fernandes.github.io/town-collection-cal/;
+    location = / {
+        return 302 /town-collection-cal/;
+    }
+
+    location ^~ /town-collection-cal/ {
+        proxy_pass https://flavio-fernandes.github.io;
         proxy_set_header Host flavio-fernandes.github.io;
         proxy_ssl_server_name on;
         proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        return 302 /town-collection-cal$request_uri;
     }
 }
 EOF
