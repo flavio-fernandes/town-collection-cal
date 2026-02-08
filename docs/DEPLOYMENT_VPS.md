@@ -138,47 +138,16 @@ docker create \
 ## 6) Exponential backoff wrapper script
 
 Systemd on Ubuntu 22.04 doesn’t natively support exponential restart delays, so use a tiny wrapper that:
+- starts immediately on the first attempt
 - waits `60s` after the first failure
 - doubles each time
 - caps at `900s` (15 minutes)
 - resets to `0` after a clean exit
 
 ```bash
-sudo mkdir -p /opt/town-collection-cal/bin /var/lib/town-collection-cal
-
-cat <<'EOF' | sudo tee /opt/town-collection-cal/bin/run-container.sh >/dev/null
-#!/usr/bin/env bash
-set -u
-
-STATE_FILE="/var/lib/town-collection-cal/restart_count"
-
-count=0
-if [[ -f "$STATE_FILE" ]]; then
-  count="$(cat "$STATE_FILE" || echo 0)"
-fi
-
-delay=$((60 * (2 ** count)))
-if (( delay > 900 )); then
-  delay=900
-fi
-
-if (( delay > 0 )); then
-  sleep "$delay"
-fi
-
-/usr/bin/docker start -a town-collection-cal
-exit_code=$?
-
-if [[ "$exit_code" -eq 0 ]]; then
-  echo 0 > "$STATE_FILE"
-else
-  echo $((count + 1)) > "$STATE_FILE"
-fi
-
-exit "$exit_code"
-EOF
-
-sudo chmod +x /opt/town-collection-cal/bin/run-container.sh
+cd /opt/town-collection-cal
+chmod +x scripts/vps/run-container.sh
+sudo mkdir -p /var/lib/town-collection-cal
 ```
 
 
@@ -193,7 +162,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/town-collection-cal/bin/run-container.sh
+ExecStart=/opt/town-collection-cal/scripts/vps/run-container.sh
 ExecStop=/usr/bin/docker stop town-collection-cal
 Restart=on-failure
 RestartSec=0
@@ -204,6 +173,15 @@ EOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable --now town-collection-cal.service
+```
+
+If you were using `/opt/town-collection-cal/bin/run-container.sh` from older
+instructions, update the unit file `ExecStart` to
+`/opt/town-collection-cal/scripts/vps/run-container.sh`, then run:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart town-collection-cal.service
 ```
 
 Check status:
