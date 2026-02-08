@@ -59,6 +59,14 @@ export function TownPage({ town }: TownPageProps) {
 
   const daysValidation = useMemo(() => parseDaysAhead(daysInput), [daysInput]);
 
+  function clearGeneratedPreview() {
+    setIcsUrl("");
+    setDebugUrl("");
+    setEvents([]);
+    setResolvedSummary("");
+    setCopyState("idle");
+  }
+
   useEffect(() => {
     void (async () => {
       try {
@@ -84,6 +92,7 @@ export function TownPage({ town }: TownPageProps) {
     setLoading(true);
     setError("");
     setSuggestions([]);
+    clearGeneratedPreview();
     try {
       const response = await fetchDebugPreview(town, selection);
       setEvents(response.events.slice(0, 12));
@@ -109,7 +118,6 @@ export function TownPage({ town }: TownPageProps) {
       setError(daysValidation.error);
       return;
     }
-    setResolvedSummary("");
     await runPreview(modeBSelection);
   }
 
@@ -130,6 +138,7 @@ export function TownPage({ town }: TownPageProps) {
     setLoading(true);
     setError("");
     setSuggestions([]);
+    clearGeneratedPreview();
 
     try {
       const resolved = await resolveRoute(town, input);
