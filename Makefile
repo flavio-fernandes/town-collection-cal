@@ -3,7 +3,7 @@ SHELL := bash
 
 .PHONY: sanity run-prod-hardened update-db \
 	help bootstrap-py bootstrap-web \
-	lint-py test-py lint-web test-web test-web-e2e build-web \
+	lint-py test-py typecheck-web lint-web test-web test-web-e2e build-web \
 	audit-py audit-web \
 	check test-all
 
@@ -34,6 +34,7 @@ help:
 		"  make lint-py       - run ruff with .venv" \
 		"  make test-py       - run pytest with .venv" \
 		"  make lint-web      - run web lint" \
+		"  make typecheck-web - run web typecheck" \
 		"  make test-web      - run web unit tests" \
 		"  make test-web-e2e  - run web e2e tests (Playwright image)" \
 		"  make build-web     - build web app" \
@@ -62,6 +63,16 @@ lint-py:
 
 test-py:
 	$(PYTEST)
+
+typecheck-web:
+	@if command -v npm >/dev/null 2>&1; then \
+		cd $(WEB_DIR) && npm run typecheck; \
+	elif command -v docker >/dev/null 2>&1; then \
+		$(WEB_DOCKER_RUN) sh -lc "npm ci && npm run typecheck"; \
+	else \
+		echo "error: neither npm nor docker is available for web typecheck" >&2; \
+		exit 1; \
+	fi
 
 lint-web:
 	@if command -v npm >/dev/null 2>&1; then \
@@ -114,7 +125,7 @@ audit-web:
 		exit 1; \
 	fi
 
-check: lint-py test-py lint-web test-web
+check: lint-py test-py typecheck-web lint-web test-web build-web
 
 test-all: test-py test-web
 
