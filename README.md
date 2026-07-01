@@ -64,6 +64,191 @@ docker run --rm -p 5000:5000 \
   town-collection-cal:prod
 ```
 
+## Production Reverse Proxy (nginx)
+
+A typical production layout is:
+
+- The Flask container listens on `127.0.0.1:8080` or another non-public application port.
+- nginx terminates TLS on ports 80 and 443.
+- API paths are proxied to Flask.
+- Website paths are redirected to the GitHub Pages frontend.
+
+### Important boot-time reliability rule
+
+Do not proxy the GitHub Pages website through nginx with a static hostname such as:
+
+```nginx
+location ^~ /town-collection-cal/ {
+    proxy_pass https://flavio-fernandes.github.io;
+}
+```
+
+nginx resolves a hostname used by this form of `proxy_pass` while validating or starting its configuration. If DNS is not ready during boot, nginx can fail completely with an error similar to:
+
+```text
+nginx: [emerg] host not found in upstream "flavio-fernandes.github.io"
+```
+
+When this happens, nothing listens on ports 80 or 443, even if the application container remains healthy.
+
+For website navigation, use HTTP redirects instead. Redirects do not require nginx to resolve the destination hostname. The browser resolves the GitHub Pages hostname after receiving the redirect.
+
+### Recommended nginx configuration
+
+This example keeps the API at `trash.flaviof.com` and redirects website traffic to GitHub Pages:
+
+```nginx
+server {
+    server_name trash.flaviof.com;
+
+    # Application API endpoints.
+    location ~ ^/(town\.ics|resolve|version|healthz|debug|streets)$ {
+        proxy_pass http://127.0.0.1:8080;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Main website entry point.
+    location = / {
+        return 302 https://flavio-fernandes.github.io/town-collection-cal/;
+    }
+
+    # Preserve links that already include the GitHub Pages project prefix.
+    location ^~ /town-collection-cal/ {
+        return 302 https://flavio-fernandes.github.io$request_uri;
+    }
+
+    # Redirect other non-API paths into the GitHub Pages project.
+    location / {
+        return 302 https://flavio-fernandes.github.io/town-collection-cal$request_uri;
+    }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/trash.flaviof.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/trash.flaviof.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+    limit_req zone=ics_rate burst=20 nodelay;
+    limit_conn addr 20;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy no-referrer always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+}
+
+server {
+    if ($host = trash.flaviof.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    listen 80;
+    server_name trash.flaviof.com;
+    return 404; # managed by Certbot
+}
+```
+
+Use `302` while testing. After the routing has been stable and verified, changing permanent redirects to `301` or `308` is optional.
+
+### Safe update procedure
+
+Always back up and validate the nginx configuration before restarting:
+
+```bash
+set -euo pipefail
+
+NGINX_SITE=$(readlink -f /etc/nginx/sites-enabled/trash.flaviof.com)
+BACKUP=${NGINX_SITE}.$(date +%Y%m%d-%H%M%S).bak
+
+sudo cp -a "${NGINX_SITE}" "${BACKUP}"
+sudo nginx -t
+sudo systemctl restart nginx
+sudo systemctl --no-pager --full status nginx
+```
+
+If the configuration was edited after the backup, run `sudo nginx -t` again immediately before restarting.
+
+### Verification
+
+Confirm that nginx and the application port are listening:
+
+```bash
+sudo ss -lntp |
+  awk 'NR == 1 || $4 ~ /:(80|443|8080)$/'
+```
+
+Test the backend directly:
+
+```bash
+curl -fsS http://127.0.0.1:8080/healthz
+echo
+```
+
+Test nginx locally while preserving the production hostname and TLS SNI:
+
+```bash
+curl -sSIk \
+  --resolve trash.flaviof.com:443:127.0.0.1 \
+  https://trash.flaviof.com/
+
+curl -fsSk \
+  --resolve trash.flaviof.com:443:127.0.0.1 \
+  https://trash.flaviof.com/healthz
+echo
+
+curl -fsSk \
+  --resolve trash.flaviof.com:443:127.0.0.1 \
+  "https://trash.flaviof.com/town.ics?weekday=Thursday&color=BLUE" |
+  sed -n '1,15p'
+```
+
+Expected results:
+
+- `/` returns a redirect to the GitHub Pages website.
+- `/healthz` returns a successful JSON response.
+- `/town.ics` begins with `BEGIN:VCALENDAR`.
+
+Test publicly from another system:
+
+```bash
+curl -sSIL https://trash.flaviof.com/
+curl -fsS https://trash.flaviof.com/healthz
+echo
+```
+
+### Troubleshooting connection refused
+
+If clients report:
+
+```text
+Failed to connect to trash.flaviof.com port 443: Connection refused
+```
+
+check these in order:
+
+```bash
+sudo ss -lntp |
+  awk 'NR == 1 || $4 ~ /:(80|443|8080)$/'
+
+sudo systemctl --no-pager --full status nginx
+sudo nginx -t
+sudo journalctl -u nginx -b --no-pager -n 200
+sudo docker ps -a \
+  --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}'
+```
+
+Interpretation:
+
+- Application on 8080, but nothing on 443: nginx is down or failed validation.
+- nginx reports `host not found in upstream`: remove the external website `proxy_pass` and use a redirect.
+- nginx is listening, but public traffic times out: inspect the host firewall and cloud ingress rules.
+- TLS errors occur only after TCP connects: inspect the certificate and SNI configuration.
+
 ## Website (Frontend)
 The repository now includes a static web app in `web/` that helps residents generate subscription URLs without exposing addresses in the final URL.
 
