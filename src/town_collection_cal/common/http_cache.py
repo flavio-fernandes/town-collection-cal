@@ -8,8 +8,16 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
+
+_DEFAULT_USER_AGENT = (
+    "town-collection-cal/0.1 "
+    "(+https://github.com/flavio-fernandes/town-collection-cal)"
+)
+
 
 @dataclass(frozen=True)
 class CacheResult:
@@ -32,6 +40,40 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def _http_session() -> requests.Session:
+    """Create a session suitable for public municipal document downloads.
+
+    Some municipal document hosts reject the default ``python-requests`` user
+    agent or occasionally return transient gateway/rate-limit errors. A named
+    user agent makes the client identifiable, while bounded retries keep updater
+    and CI runs resilient without retrying indefinitely.
+    """
+
+    retry = Retry(
+        total=3,
+        connect=3,
+        read=3,
+        status=3,
+        backoff_factor=0.5,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET"}),
+        respect_retry_after_header=True,
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+
+    session = requests.Session()
+    session.headers.update(
+        {
+            "User-Agent": _DEFAULT_USER_AGENT,
+            "Accept": "application/pdf,application/octet-stream;q=0.9,*/*;q=0.8",
+        }
+    )
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
 
 
 def fetch_with_cache(
@@ -62,7 +104,8 @@ def fetch_with_cache(
             headers["If-Modified-Since"] = last_modified
 
     try:
-        response = requests.get(url_str, headers=headers, timeout=timeout)
+        with _http_session() as session:
+            response = session.get(url_str, headers=headers, timeout=timeout)
     except requests.RequestException as exc:
         if content_path.exists():
             sha = meta.get("sha256") or _sha256_file(content_path)
