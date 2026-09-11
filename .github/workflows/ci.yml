@@ -26,8 +26,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Test the installed production package
+        run: docker build --pull --target test -t town-collection-cal:test .
       - name: Build prod image
         run: docker build -t town-collection-cal:ci .
+      - name: Verify runtime packaging and address model
+        run: |
+          docker run --rm --network none --read-only \
+            -v "$PWD/scripts/check_runtime_image.py:/check_runtime_image.py:ro" \
+            town-collection-cal:ci python /check_runtime_image.py
+      - name: Reject fixable high and critical vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: town-collection-cal:ci
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
       - name: Build DB for smoke test
         run: |
           mkdir -p data/cache data/generated
@@ -44,6 +60,11 @@ jobs:
               --town /app/towns/westford_ma/town.yaml \
               --out /app/data/generated/westford_ma.json \
               --cache-dir /app/data/cache
+      - name: Test live routes with the installed package
+        run: |
+          docker run --rm --network none --read-only --tmpfs /tmp \
+            -v "$PWD/data/cache:/app/data/cache:ro" \
+            town-collection-cal:test python -m pytest -q -p no:cacheprovider
       - name: Run with hardened flags
         run: |
           docker run -d --name town-collection-cal-ci \

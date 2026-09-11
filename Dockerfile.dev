@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim-bookworm@sha256:528257d48c1da0dcecc2e725d1ae34498d60c965f1241e39cd6a85a8859bdf84
 
 ARG GIT_COMMIT
 
@@ -12,12 +12,14 @@ COPY pyproject.toml README.md /app/
 COPY src /app/src
 COPY towns /app/towns
 COPY scripts /app/scripts
+COPY requirements/runtime.txt /app/requirements/runtime.txt
 
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends build-essential g++ python3-dev \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir --upgrade pip==26.0.1 wheel==0.46.2 \
-    && pip install --no-cache-dir -e ".[dev,address]"
+    && python -m pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && python -m pip install --no-cache-dir -c requirements/runtime.txt -e ".[dev,address]"
 
 ENV FLASK_APP=town_collection_cal.service.app:create_app \
     FLASK_ENV=development

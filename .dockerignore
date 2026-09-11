@@ -5,7 +5,9 @@ __pycache__/
 .ruff_cache/
 data/cache/
 data/generated/
-tests/
+data/security-check/
+tmp/
+.git/
 *.log
 web/node_modules/
 web/dist/
