@@ -75,6 +75,10 @@ def create_app() -> Flask:
 
     @app.get("/healthz")
     def healthz() -> Any:
+        policy = db_loader.get_db().holiday_policy
+        today = local_today(config.timezone)
+        if policy.valid_through and today > policy.valid_through:
+            return jsonify({"ok": False, "error": "Reviewed collection schedule has expired"}), 503
         return jsonify({"ok": True})
 
     @app.get("/version")
@@ -85,6 +89,11 @@ def create_app() -> Flask:
                 "service_version": service_version,
                 "schema_version": db.schema_version,
                 "meta": db.meta.model_dump(),
+                "schedule_review": {
+                    "valid_from": db.holiday_policy.valid_from,
+                    "valid_through": db.holiday_policy.valid_through,
+                    "source_sha256": db.holiday_policy.reviewed_source_sha256,
+                },
             }
         )
 

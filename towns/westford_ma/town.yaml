@@ -4,7 +4,7 @@ timezone: America/New_York
 
 sources:
   routes_pdf_url: https://westfordma.gov/DocumentCenter/View/2949/Trash-and-Recycling-Routes-by-Street-Name-PDF
-  schedule_pdf_url: https://westfordma.gov/DocumentCenter/View/16672/Recycling-Guide-2025-2026
+  schedule_pdf_url: https://westfordma.gov/DocumentCenter/View/16672/Recycling-Guide-2026-2027
 
 parsers:
   routes_parser: town_collection_cal.updater.parsers.westford_routes:parse_routes

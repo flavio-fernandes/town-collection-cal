@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import logging
 import os
 import subprocess
@@ -9,6 +10,7 @@ from datetime import UTC, datetime
 from importlib import import_module
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from town_collection_cal.common.db_model import (
     SCHEMA_VERSION,
@@ -158,6 +160,24 @@ def build_db(
     aliases = apply_alias_overrides({}, alias_path)
     holiday_policy = _coerce_holiday_policy(config.rules, schedule_result)
     holiday_policy = apply_holiday_overrides(holiday_policy, holiday_path)
+    if holiday_policy.reviewed_source_sha256:
+        # Hash the actual bytes, including when HTTP cache metadata was reused.
+        source_sha256 = hashlib.sha256(schedule_cache.path.read_bytes()).hexdigest()
+        if source_sha256 != holiday_policy.reviewed_source_sha256:
+            raise ValueError(
+                "Schedule PDF changed since the holiday review. Review its calendar, update "
+                "holiday_rules.yaml dates/coverage and reviewed_source_sha256, then rebuild."
+            )
+        today = datetime.now(ZoneInfo(config.timezone)).date()
+        if today > holiday_policy.valid_through:
+            raise ValueError(
+                f"Holiday rules expired on {holiday_policy.valid_through}; review the new guide"
+            )
+        logger.info(
+            "Schedule reviewed from %s through %s",
+            holiday_policy.valid_from,
+            holiday_policy.valid_through,
+        )
 
     routes = apply_route_overrides(routes_result.routes, route_overrides_path)
 

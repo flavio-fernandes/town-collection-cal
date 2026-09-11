@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 
 import pdfplumber
@@ -14,7 +14,11 @@ ANCHOR_PATTERN = re.compile(
     r"week of\s+([A-Za-z]+)\s+(\d{1,2})\s*-\s*(\d{1,2}).*?\b(BLUE|GREEN)\b",
     re.IGNORECASE,
 )
-YEAR_PATTERN = re.compile(r"\b(20\d{2})\b")
+GUIDE_YEAR_PATTERN = re.compile(
+    r"\b(20\d{2})\s*[-–]\s*20\d{2}\s+Curbside Recycling Collection Calendar"
+    r"|Recycling Guide\s+(20\d{2})\s*[-–]\s*20\d{2}",
+    re.IGNORECASE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +35,10 @@ def _extract_text(path: Path) -> str:
 
 
 def _infer_year(text: str) -> int:
-    years = [int(y) for y in YEAR_PATTERN.findall(text)]
-    if years:
-        return min(years)
-    return datetime.now().year
+    years = {int(a or b) for a, b in GUIDE_YEAR_PATTERN.findall(text)}
+    if len(years) != 1:
+        raise ValueError("Missing or ambiguous recycling guide year; review the PDF title")
+    return years.pop()
 
 
 def _anchor_sunday(some_day: date) -> date:

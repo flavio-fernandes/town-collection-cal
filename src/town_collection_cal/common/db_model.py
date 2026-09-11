@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 SCHEMA_VERSION = 1
 
@@ -32,6 +32,21 @@ class HolidayPolicy(BaseModel):
     no_collection_dates: list[date] = Field(default_factory=list)
     shift_holidays: list[date] = Field(default_factory=list)
     shift_by_one_day: bool = True
+    reviewed_source_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    valid_from: date | None = None
+    valid_through: date | None = None
+
+    @model_validator(mode="after")
+    def _validate_review(self) -> HolidayPolicy:
+        review = (self.reviewed_source_sha256, self.valid_from, self.valid_through)
+        if any(value is not None for value in review):
+            if any(value is None for value in review):
+                raise ValueError(
+                    "Holiday review requires source SHA256, valid_from and valid_through"
+                )
+            if self.valid_from > self.valid_through:
+                raise ValueError("Holiday review valid_from must not exceed valid_through")
+        return self
 
 
 class RouteConstraint(BaseModel):

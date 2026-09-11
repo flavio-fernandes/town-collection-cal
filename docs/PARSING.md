@@ -14,6 +14,8 @@ This document explains how the updater fetches and parses town PDFs, and how to 
    - If the network fetch fails but a cached file exists, the updater will reuse the cached file.
 
 3. **Parse PDFs**
+   - This is PDF text extraction, not OCR. Westford's circled holiday dates and colored
+     calendar cells are not automatically extracted. Holiday review is a manual step.
    - The updater invokes two parsers:
      - **Routes parser**: `parsers.routes_parser` (e.g., `westford_routes:parse_routes`)
      - **Schedule parser**: `parsers.schedule_parser` (e.g., `westford_guide:parse_schedule`)
@@ -25,10 +27,12 @@ This document explains how the updater fetches and parses town PDFs, and how to 
 4. **Apply overrides**
    - `street_aliases.yaml`: normalize + map aliases
    - `route_overrides.yaml`: add/patch/delete routes
-  - `holiday_rules.yaml`: authoritative holiday dates/week-shifts
+   - `holiday_rules.yaml`: authoritative holiday dates/week-shifts and reviewed coverage
    - Overrides always win and are logged.
 
 5. **Write DB**
+   - Westford's holiday file binds the review to the PDF's SHA256 and coverage dates.
+     A changed PDF or expired review fails the build before replacing the previous DB.
    - Output is written atomically to `data/generated/<town_id>.json`.
    - If parsing fails, the updater does **not** overwrite the previous DB.
 
@@ -110,6 +114,15 @@ PY
 **3) Holiday behavior is wrong**
 - Use `towns/westford_ma/holiday_rules.yaml` as the source of truth.
 - For date-based shifts, add entries under `shift_holidays`.
+- Do not put a delayed holiday in `no_collection_dates`: that skips the pickup entirely.
+- Daily refreshes do not discover holiday changes. Review the actual calendar page:
+  circles mean delays; triangles are special collection events, not delays.
+- The service caps calendar events at `valid_through`; after expiration `/healthz`
+  returns 503 and calendar requests fail rather than inventing future pickup dates.
+- `/version` exposes `schedule_review` as well as the DB generation timestamp. Monitor
+  updater failures and the generation timestamp; a working API alone does not prove
+  that the daily updater is running. A successful refresh may still use cached PDFs
+  after a network failure, which is logged as a warning.
 
 **4) URL changed (e.g., 2027 guide)**
 - Update `towns/westford_ma/town.yaml`:
@@ -122,8 +135,20 @@ PY
 
 1. Find the new URLs on the Westford site.
 2. Update `towns/westford_ma/town.yaml`.
-3. Run the updater with `--force-refresh`.
-4. If parsing fails:
+3. Download/render the new guide and visually review all months, week colors, and holidays.
+   Set the new `shift_holidays`, `valid_from`, and `valid_through` in `holiday_rules.yaml`.
+   Only after that review, set `reviewed_source_sha256` to the SHA256 of the downloaded PDF.
+   Use `shasum -a 256 <downloaded-guide.pdf>` on macOS or `sha256sum` on Linux.
+4. Run the updater with `--force-refresh`.
+5. If parsing fails:
    - Add overrides for the failing entries.
    - Update parser patterns as needed.
-5. Update `holiday_rules.yaml` for the new year.
+6. Update the regression fixture and verify holiday weeks before and after the cutoff,
+   Saturday pickups, and the final covered date. Run `pytest` and `ruff check .`.
+7. Deploy both the application and the town configuration. The VPS bind-mounts
+   `/opt/town-collection-cal/towns`; a new image alone does not replace these host files.
+8. Rebuild the production DB and verify `/version`, `/debug`, and `/town.ics` publicly.
+   Check the systemd updater timer and its last successful run.
+
+The July 2026-June 2027 review and regression fixture provenance are recorded in
+[`WESTFORD_2026_2027_REVIEW.md`](WESTFORD_2026_2027_REVIEW.md).

@@ -1,10 +1,14 @@
-# Holiday rules for Westford.
-# Dates use ISO format (YYYY-MM-DD).
+# Visually reviewed against page 5 of the town's 2026-2027 Recycling Guide.
+# Circles mark holidays; triangles mark special events, NOT collection delays.
+# July 4, 2026 is Saturday and is not circled: July 3 is a normal pickup.
+# When the PDF changes, review all dates/colors before updating this fingerprint.
+reviewed_source_sha256: 25dd585ca4f594307f11246f0de065c10ee866cc2c42ed7407b9bb241f02a4c0
+valid_from: "2026-07-01"
+valid_through: "2027-06-30"
 no_collection_dates: []
 shift_holidays:
-  - "2025-07-04"
-  - "2025-09-01"
-  - "2025-11-27"
-  - "2025-12-25"
-  - "2026-01-01"
-  - "2026-05-25"
+  - "2026-09-07" # Labor Day
+  - "2026-11-26" # Thanksgiving
+  - "2026-12-25" # Christmas
+  - "2027-01-01" # New Year's Day
+  - "2027-05-31" # Memorial Day

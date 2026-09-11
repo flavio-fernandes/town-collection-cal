@@ -1,6 +1,6 @@
 # nginx deployment and recovery
 
-This document describes the production reverse-proxy layout used for `trash.flaviof.com`, including an important boot-time reliability rule discovered after an Oracle Cloud VM reboot.
+This document describes the reverse-proxy layout for the collection service, including a boot-time DNS reliability rule.
 
 ## Production layout
 
@@ -215,21 +215,15 @@ Interpretation:
 
 - Port `8080` is listening but `443` is not: nginx is down or failed validation.
 - nginx reports `host not found in upstream`: remove the external website `proxy_pass` and use an HTTP redirect.
-- nginx is listening but public traffic times out: inspect host firewall and Oracle Cloud ingress rules.
+- nginx is listening but public traffic times out: inspect host firewall and hosting-provider ingress rules.
 - TCP connects but TLS fails: inspect the certificate, private key, SNI, and Certbot configuration.
 - TLS succeeds but a path returns an HTTP error: inspect nginx path routing and Flask routes.
 
-## Tailscale DNS note
+## DNS troubleshooting
 
-A local `dig` command may show the resolver as:
-
-```text
-SERVER: 100.100.100.100#53
-```
-
-That address is Tailscale's local DNS forwarder. It can resolve ordinary public DNS names and does not imply that the returned service address is inside the tailnet.
-
-For example, if the answer is the public address `193.122.136.53`, HTTPS traffic is still sent to that public address. To compare against public resolvers directly:
+The resolver address shown by `dig` identifies the DNS server, not the destination
+of HTTPS traffic. Check the returned address records and compare against public
+resolvers directly:
 
 ```bash
 dig @1.1.1.1 +short trash.flaviof.com A

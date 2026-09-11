@@ -48,6 +48,12 @@ def generate_schedule(
     holiday_policy: HolidayPolicy,
 ) -> list[ScheduleEvent]:
     end_date = start_date + timedelta(days=days)
+    if holiday_policy.valid_from:
+        start_date = max(start_date, holiday_policy.valid_from)
+    if holiday_policy.valid_through:
+        end_date = min(end_date, holiday_policy.valid_through)
+    if start_date > end_date:
+        raise ValueError("No reviewed collection schedule covers the requested dates")
     events: dict[date, set[str]] = {}
 
     trash_offset = WEEKDAY_TO_OFFSET[trash_weekday.lower()]

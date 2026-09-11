@@ -72,7 +72,11 @@ def apply_holiday_overrides(
                 )
         updated.shift_holidays = shifts
         logger.info("Holiday override: replaced shift_holidays")
-    return updated
+    values = updated.model_dump()
+    for key in ("reviewed_source_sha256", "valid_from", "valid_through"):
+        if key in data:
+            values[key] = data[key]
+    return HolidayPolicy.model_validate(values)
 
 
 @dataclass(frozen=True)

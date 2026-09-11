@@ -339,6 +339,12 @@ TTL: 300 (or your preference)
 
 ## 11) Required: Rebuild DB daily with systemd timer
 
+This refresh uses PDF text extraction, not OCR of holiday markings. Westford's
+holiday review must also be updated when the guide changes. Deploy the reviewed
+`town.yaml` and `holiday_rules.yaml` to `HOST_TOWNS_DIR/westford_ma` along with the
+application release: the host bind mount overrides the files inside the image.
+See [Parsing and Troubleshooting](PARSING.md).
+
 Create a one-shot service that refreshes the DB:
 
 ```bash
@@ -389,6 +395,18 @@ Confirm schedule:
 ```bash
 systemctl list-timers --all | rg town-collection-cal-update
 ```
+
+Also check that the updater actually succeeded and the public DB timestamp advanced:
+
+```bash
+systemctl show town-collection-cal-update.service -p Result -p ExecMainStatus -p ExecMainExitTimestamp
+curl -fsS https://trash.flaviof.com/version | python3 -m json.tool
+```
+
+Monitor failed updater runs and stale DB generation timestamps. The weekly GitHub
+integration job tests live parsing but does not deploy its generated DB to this VPS.
+`/healthz` reports 503 once reviewed coverage expires; before then it can remain
+healthy while an updater failure leaves the previous DB in service.
 
 
 ## Troubleshooting logs (journalctl)
